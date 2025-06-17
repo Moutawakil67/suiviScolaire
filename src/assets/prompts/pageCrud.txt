@@ -1,0 +1,31 @@
+1-Page Spot 
+    Champs nécessaires pour la création et la mise à jour :
+
+   {
+  "id": 1,
+  "audio" : Binary
+  "commanditaire_id": 10,
+}
+
+2-Page agent 
+    Champs nécessaires pour la création et la mise à jour :
+
+ {
+  "nom": "Durand",
+  "prenom": "Sophie",
+  "email": "sophie.durand@example.com",
+  "password": "motdepasse456",
+  "telephone": "0601020304",
+  "adresse": "20 avenue des Champs, Lyon"
+}
+
+
+
+3-Page média 
+    Champs nécessaires pour la création et la mise à jour :
+{
+  "nom_chaine": "Bénin TV",
+  "type_chaine": "TV",
+  "url_stream": "https://stream.benintv.bj/live"
+}
+

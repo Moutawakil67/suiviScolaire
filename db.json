@@ -1,0 +1,262 @@
+{
+  "agents": [],
+  "logout": [],
+  "connexion": [
+    {
+      "id": "2",
+      "email": "user@email.com",
+      "username": "user",
+      "password": "password",
+      "firstName": "User",
+      "lastName": "Techzaa",
+      "role": "user",
+      "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb2RlcnRoZW1lcyIsImF1ZCI6Imh0dHBzOi8vY29kZXJ0aGVtZXMuY29tLyIsInN1YiI6InN1cHBvcnRAY29kZXJ0aGVtZXMuY29tIiwibGFzdE5hbWUiOiJDb2RlcnRoZW1lcyIsIkVtYWlsIjoic3VwcG9ydEBjb2RlcnRoZW1lcy5jb20iLCJSb2xlIjoiQWRtaW4iLCJmaXJzdE5hbWUiOiJBcm91bmQifQ.yTJpBUmQ_T1dUf-dIdgxXn16KZjhvXw6cUT1sFhnOtKJ3-67gnRCC41nNVGLJpyjv4HCLVj0ytTbmfWzWcY_2Q"
+    },
+    {
+      "id": "2",
+      "email": "user@email.com",
+      "username": "user",
+      "password": "password",
+      "firstName": "User",
+      "lastName": "Techzaa",
+      "role": "user",
+      "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb2RlcnRoZW1lcyIsImF1ZCI6Imh0dHBzOi8vY29kZXJ0aGVtZXMuY29tLyIsInN1YiI6InN1cHBvcnRAY29kZXJ0aGVtZXMuY29tIiwibGFzdE5hbWUiOiJDb2RlcnRoZW1lcyIsIkVtYWlsIjoic3VwcG9ydEBjb2RlcnRoZW1lcy5jb20iLCJSb2xlIjoiQWRtaW4iLCJmaXJzdE5hbWUiOiJBcm91bmQifQ.yTJpBUmQ_T1dUf-dIdgxXn16KZjhvXw6cUT1sFhnOtKJ3-67gnRCC41nNVGLJpyjv4HCLVj0ytTbmfWzWcY_2Q"
+    },
+    {
+      "id": "2",
+      "email": "user@email.com",
+      "username": "user",
+      "password": "password",
+      "firstName": "User",
+      "lastName": "Techzaa",
+      "role": "user",
+      "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb2RlcnRoZW1lcyIsImF1ZCI6Imh0dHBzOi8vY29kZXJ0aGVtZXMuY29tLyIsInN1YiI6InN1cHBvcnRAY29kZXJ0aGVtZXMuY29tIiwibGFzdE5hbWUiOiJDb2RlcnRoZW1lcyIsIkVtYWlsIjoic3VwcG9ydEBjb2RlcnRoZW1lcy5jb20iLCJSb2xlIjoiQWRtaW4iLCJmaXJzdE5hbWUiOiJBcm91bmQifQ.yTJpBUmQ_T1dUf-dIdgxXn16KZjhvXw6cUT1sFhnOtKJ3-67gnRCC41nNVGLJpyjv4HCLVj0ytTbmfWzWcY_2Q"
+    },
+    {
+      "id": "2",
+      "email": "user@email.com",
+      "username": "user",
+      "password": "password",
+      "firstName": "User",
+      "lastName": "Techzaa",
+      "role": "user",
+      "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb2RlcnRoZW1lcyIsImF1ZCI6Imh0dHBzOi8vY29kZXJ0aGVtZXMuY29tLyIsInN1YiI6InN1cHBvcnRAY29kZXJ0aGVtZXMuY29tIiwibGFzdE5hbWUiOiJDb2RlcnRoZW1lcyIsIkVtYWlsIjoic3VwcG9ydEBjb2RlcnRoZW1lcy5jb20iLCJSb2xlIjoiQWRtaW4iLCJmaXJzdE5hbWUiOiJBcm91bmQifQ.yTJpBUmQ_T1dUf-dIdgxXn16KZjhvXw6cUT1sFhnOtKJ3-67gnRCC41nNVGLJpyjv4HCLVj0ytTbmfWzWcY_2Q"
+    }
+  ],
+  "medias": [
+    {
+      "id": "f52f",
+      "nom_chaine": "terzer",
+      "type_chaine": "TV",
+      "url_stream": "google.com"
+    }
+  ],
+  "categories": [
+    {
+      "id": "5fe3",
+      "produit": "produit B"
+    }
+  ],
+  "spots": [
+    {
+      "id": "8f8f",
+      "libelle": "fsqdqfsqfdsq",
+      "type": "SPOT",
+      "fichier_reference": "dsqffdq",
+      "duree_reference": "dfqdsqsq"
+    }
+  ],
+  "campagnes": [
+    {
+      "designation": "fdsfds",
+      "date_debut": "2025-05-04",
+      "date_fin": "2025-05-31",
+      "id": "556d"
+    },
+    {
+      "id": "77e5",
+      "designation": "fsdfsd",
+      "date_debut": "2025-05-11",
+      "date_fin": "2025-05-26"
+    }
+  ],
+  "commanditaires": [
+    {
+      "id": "1",
+      "nom": "Campagne Été 2023",
+      "raison_social": "Société A",
+      "adresse": "123 Rue de la République, 75001 Paris"
+    },
+    {
+      "id": "2",
+      "nom": "Promotion Automne",
+      "raison_social": "Entreprise B",
+      "adresse": "456 Avenue des Champs-Élysées, 75008 Paris"
+    },
+    {
+      "id": "3",
+      "nom": "Noël 2023",
+      "raison_social": "Groupe",
+      "adresse": "789 Boulevard Haussmann, 75009 Paris"
+    },
+    {
+      "id": "03c7",
+      "nom": "test a",
+      "raison_social": "rgkldf A",
+      "adresse": "adresse skkkhkhk"
+    },
+    {
+      "id": "0d73",
+      "nom": "fsdfs",
+      "raison_social": "dsfd",
+      "adresse": "gdf"
+    },
+    {
+      "id": "677d",
+      "nom": "etrer",
+      "raison_social": "zrtr",
+      "adresse": "rtzrtrtz"
+    },
+    {
+      "designation": "nom",
+      "date_debut": "2025-05-11",
+      "date_fin": "2025-05-04",
+      "id": "49d9"
+    },
+    {
+      "id": "f7c4",
+      "designation": "fsfsqdq",
+      "date_debut": "2025-05-17",
+      "date_fin": ""
+    },
+    {
+      "id": "f0ac",
+      "designation": "fdfqdsd",
+      "date_debut": "2025-05-27",
+      "date_fin": "2025-05-30"
+    }
+  ],
+  "users": [
+    {
+      "id": "332e",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "04e2",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "3bd5",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "e84a",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "42ad",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "b1b7",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "4dde",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "3e0d",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "d93c",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "3cd9",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "f77c",
+      "email": "user@email.com",
+      "password": "password"
+    },
+    {
+      "id": "6940",
+      "email": "user@email.com",
+      "password": "password"
+    }
+  ],
+  "emails": [
+    {
+      "id": "1",
+      "sender": "John Doe",
+      "subject": "Réunion projet",
+      "message": "Bonjour, pouvons-nous planifier une réunion?",
+      "date": "2024-03-20",
+      "status": "active",
+      "isStarred": false,
+      "isImportant": true,
+      "isSent": false,
+      "isTrash": false,
+      "isRead": false,
+      "categories": [
+        "travail"
+      ],
+      "type": "inbox"
+    }
+  ],
+  "todos": [
+    {
+      "id": "1",
+      "taskName": "Révision du design",
+      "createDate": "2024-03-20",
+      "time": "10:00",
+      "dueDate": "2024-03-25",
+      "assigned": {
+        "name": "Marie Martin",
+        "avatar": "/assets/images/users/avatar-1.jpg"
+      },
+      "status": "in-progress",
+      "priority": "high",
+      "checked": false
+    }
+  ],
+  "events": [
+    {
+      "id": "1",
+      "title": "Réunion d'équipe",
+      "start": "2024-03-20T09:00:00",
+      "end": "2024-03-20T10:00:00",
+      "className": "bg-info"
+    }
+  ],
+  "plans": [
+    {
+      "name": "Basic",
+      "price": 19,
+      "period": "mensuel",
+      "features": [
+        "5 Projects",
+        "100 GB Storage",
+        "Basic Support"
+      ],
+      "button": {
+        "text": "Choisir le plan",
+        "disabled": false
+      },
+      "id": "72a3"
+    }
+  ]
+}

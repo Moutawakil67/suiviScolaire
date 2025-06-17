@@ -1,0 +1,89 @@
+Contrôle qualité pour chaque page :
+
+1-Structure générale de la page :
+
+    Cohérence des titres : Le titre principal et les sous-titres sont clairs et cohérents avec le contenu.
+
+    Accessibilité des actions principales : Les actions principales (ajouter, modifier, supprimer, rechercher) sont visibles, accessibles et bien positionnées.
+
+    Responsive design : La page est testée sur différentes tailles d’écran pour garantir qu'elle est responsive.
+
+    Fonctionnalité des boutons : Les boutons d’action (Ajouter, Modifier, Supprimer, etc.) sont fonctionnels et bien positionnés.
+
+2-Fonctionnalités CRUD :
+
+    a) Création :
+
+        Le formulaire de création s'affiche correctement (modale ou page dédiée).
+
+        Les champs obligatoires sont bien indiqués, et la validation des champs fonctionne.
+
+        Les erreurs de saisie (champ vide, format incorrect) sont clairement affichées avec des messages explicites.
+
+        Les données sont enregistrées correctement dans la base de données.
+
+        Un toast s'affiche après une création réussie.
+
+    b) Lecture :
+
+        Les données sont correctement affichées dans le tableau ou la liste (titre, description, etc.).
+
+        La pagination ou le défilement fonctionne correctement si nécessaire.
+
+        Les colonnes sont triables (si applicable) et le tri fonctionne comme attendu.
+
+        Les filtres ou champs de recherche renvoient les bons résultats.
+
+    c) Mise à jour :
+
+        Les données actuelles sont correctement affichées dans le formulaire de modification.
+
+        Les champs obligatoires sont validés correctement.
+
+        Les modifications sont enregistrées et répercutées sur la page.
+
+        Un toast s'affiche après une modification réussie.
+
+    d) Suppression :
+
+        Une confirmation (modale ou alerte) s'affiche avant la suppression.
+
+        La suppression fonctionne correctement et les données disparaissent de la liste ou du tableau.
+
+        Une confirmation visuelle (toast, alerte) s'affiche après une suppression réussie.
+
+3-Gestion des erreurs :
+
+    Les messages d'erreur sont clairs et compréhensibles (pas de undefined ou [object Object]).
+
+    Les erreurs côté serveur (ex. : 500, 404) sont bien gérées et affichées avec des retours utilisateur.
+
+    Les erreurs de validation des champs sont détaillées et spécifiques (ex. : "Le champ email doit contenir une adresse valide").
+
+4-UX/UI :
+
+    Les boutons et actions sont désactivés pendant le chargement pour éviter les doublons.
+
+    Les champs préremplis sont pertinents (ex. : "Choisir une option").
+
+    Les icônes et libellés des actions (modifier, supprimer, etc.) sont clairs et compréhensibles.
+
+    Les retours visuels pour les actions (chargement, toasts) sont fluides et rapides.
+
+5-Tests techniques :
+
+    Vérifier les appels API (status HTTP, données renvoyées, etc.).
+
+    Valider le bon fonctionnement des endpoints (création, lecture, mise à jour, suppression).
+
+    Tester les scénarios avec des données limites (champs très longs, valeurs nulles, caractères spéciaux, etc.).
+
+    Vérifier que les champs protégés ou non modifiables ne sont pas accessibles.
+
+6-Autres points spécifiques :
+
+    Les permissions utilisateurs (si applicables) sont bien respectées (actions désactivées ou cachées pour certains rôles).
+
+    Les performances de chargement sont acceptables (testées avec des listes longues).
+
+    La page fonctionne correctement sur plusieurs navigateurs (Chrome, Firefox, Edge, Safari).

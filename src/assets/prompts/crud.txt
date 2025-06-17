@@ -1,0 +1,23 @@
+Créer le service :
+
+Dans le dossier src/service, crée un fichier <Nom_de_la_page>.ts (ex: commanditaire.ts ou campagne.service).
+
+Créer le dossier de la page :
+
+Sous src/views, crée un dossier <Nom> (ex: commanditaire, campagne, etc.) pour chaque page.
+
+Créer le fichier Vue de la page :
+
+À l’intérieur du dossier créé, génère un fichier index.vue.
+
+Intègre l’API en suivant l’exemple de la page src/views/campagne/index.vue, avec la configuration du live server.
+
+Mise à jour du menu :
+
+Ouvre le fichier src/assets/data/menu.ts.
+
+Ajoute la nouvelle page au menu en choisissant l’icône appropriée dans src/views/icons/solar.vue.
+
+Mettre à jour les routes :
+
+Dans le fichier src/router/routes.ts, ajoute la page à const dashboardRoutes en suivant la structure existante pour les autres pages.
