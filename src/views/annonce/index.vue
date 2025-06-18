@@ -1,22 +1,22 @@
 <template>
   <VerticalLayout>
     <div class="container-fluid">
-      <PageTitle title="Gestion des Rapports" />
+      <PageTitle title="Gestion des Annonces" />
 
       <!-- Onglets principaux -->
       <b-tabs content-class="pt-2 text-muted" class="mt-3" justified>
-        <b-tab id="rapports-list" active>
+        <b-tab id="annonces-list" active>
           <template #title>
             <span class="d-block d-sm-none"><i class="bx bx-list-ul"></i></span>
-            <span class="d-none d-sm-block">Liste des Rapports</span>
+            <span class="d-none d-sm-block">Liste des Annonces</span>
           </template>
 
-          <!-- Liste des rapports -->
+          <!-- Liste des annonces -->
           <div class="row g-3 mb-4">
             <div class="col-12 col-md-6">
               <SearchBox
                 v-model="searchQuery"
-                placeholder="Rechercher un rapport..."
+                placeholder="Rechercher une annonce..."
                 class="w-100"
               />
             </div>
@@ -28,135 +28,106 @@
                 variant="primary"
                 @click="openAddModal"
               >
-                <i class="bx bx-plus me-1"></i> Nouveau Rapport
+                <i class="bx bx-plus me-1"></i> Nouvelle Annonce
               </LoadingButton>
               <ExportButton
                 v-if="canExport"
-                :data="rapports"
-                filename="rapports"
+                :data="annonces"
+                filename="annonces"
                 label="Exporter"
                 class="flex-shrink-0"
               />
             </div>
           </div>
 
-          <!-- Tableau des rapports -->
+          <!-- Tableau des annonces -->
           <div class="card">
             <div class="card-body">
               <div class="table-responsive">
                 <table class="table table-centered table-hover">
                   <thead>
                     <tr>
-                      <th>Objet</th>
-                      <th>Campagne</th>
+                      <th>Titre</th>
+                      <th>Contenu</th>
+                      <th>Date de publication</th>
+                      <th>Visibilité</th>
+                      <th>Images</th>
                       <th>Créateur</th>
-                      <th>Date de création</th>
-                      <th>Fichiers</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="rapport in filteredRapports" :key="rapport.id">
+                    <tr v-for="annonce in filteredAnnonces" :key="annonce.id">
                       <td>
                         <div>
-                          <strong>{{ rapport.objet }}</strong>
+                          <strong>{{ annonce.titre_annonce }}</strong>
                           <br />
-                          <small class="text-muted">{{
-                            truncateText(rapport.description, 50)
-                          }}</small>
+                          <small class="text-muted">ID: {{ annonce.id_annonce }}</small>
                         </div>
                       </td>
                       <td>
-                        <span v-if="rapport.campagne" class="badge bg-info">
-                          {{ rapport.campagne.titre }}
-                        </span>
-                        <span v-else class="text-muted">-</span>
+                        <div class="content-preview">
+                          {{ truncateText(annonce.contenu_annonce, 80) }}
+                        </div>
                       </td>
-
+                      <td>{{ formatDate(annonce.date_annonce) }}</td>
                       <td>
-                        <span v-if="rapport.created_by">
-                          {{
-                            `${rapport.created_by.prenom} ${rapport.created_by.nom}`
-                          }}
+                        <span 
+                          :class="getVisibilityBadgeClass(annonce.visibilite)"
+                          class="badge"
+                        >
+                          {{ getVisibilityLabel(annonce.visibilite) }}
                         </span>
-                        <span v-else class="text-muted">-</span>
                       </td>
-                      <td>{{ formatDate(rapport.created_at) }}</td>
                       <td>
                         <span
-                          v-if="rapport.fichiers && rapport.fichiers.length > 0"
-                          class="badge bg-success"
+                          v-if="annonce.images_annonce && annonce.images_annonce.length > 0"
+                          class="badge bg-info"
                         >
-                          {{ rapport.fichiers.length }} fichier(s)
+                          {{ annonce.images_annonce.length }} image(s)
                         </span>
-                        <span v-else class="badge bg-secondary"
-                          >Aucun fichier</span
-                        >
+                        <span v-else class="badge bg-secondary">Aucune image</span>
                       </td>
                       <td>
-                        <div class="d-flex gap-2">
+                        <span v-if="annonce.created_by">
+                          {{ `${annonce.created_by.prenom} ${annonce.created_by.nom}` }}
+                        </span>
+                        <span v-else class="text-muted">-</span>
+                      </td>
+                      <td>
+                        <div class="d-flex gap-1">
                           <button
                             class="btn btn-sm btn-soft-info"
-                            @click="viewRapport(rapport)"
-                            title="Voir le détail"
+                            @click="viewAnnonce(annonce)"
+                            title="Voir les détails"
                           >
-                          
                             <i class="bx bx-show"></i>
                           </button>
-
-    <button
-      class="btn btn-sm btn-soft-success"
-      @click="sendMailRapport(rapport)"
-      :disabled="sendingMail[rapport.id]"
-      title="Envoyer par mail au commanditaire"
-    >
-      <span
-        v-if="sendingMail[rapport.id]"
-        class="spinner-border spinner-border-sm"
-        role="status"
-      ></span>
-      <i v-else class="bx bx-mail-send"></i>
-    </button>
-
+                          <button
+                            class="btn btn-sm btn-soft-warning"
+                            @click="previewAnnonce(annonce)"
+                            title="Prévisualiser"
+                          >
+                            <i class="bx bx-search"></i>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-soft-success"
+                            @click="publishAnnonce(annonce)"
+                            :disabled="annonce.visibilite === 'publiee'"
+                            title="Publier"
+                          >
+                            <i class="bx bx-check-circle"></i>
+                          </button>
                           <button
                             class="btn btn-sm btn-soft-primary"
-                            @click="openEditModal(rapport)"
+                            @click="openEditModal(annonce)"
                             title="Modifier"
                           >
                             <i class="bx bx-pencil"></i>
                           </button>
-                          <div class="dropdown">
-                            <button
-                              class="btn btn-sm btn-soft-secondary dropdown-toggle"
-                              type="button"
-                              :id="`export-${rapport.id}`"
-                              data-bs-toggle="dropdown"
-                            >
-                              <i class="bx bx-download"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                              <li>
-                                <a
-                                  class="dropdown-item"
-                                  @click="exportPdf(rapport.id,rapport.objet)"
-                                  href="#"
-                                  >PDF</a
-                                >
-                              </li>
-
-                              <!--
-                              <li>
-                                <a
-                                  class="dropdown-item"
-                                  @click="exportExcel(rapport.id)"
-                                  href="#"
-                                  >Excel</a></li>
-                              -->
-                            </ul>
-                          </div>
                           <button
                             class="btn btn-sm btn-soft-danger"
-                            @click="openDeleteModal(rapport)"
+                            @click="openDeleteModal(annonce)"
                             title="Supprimer"
                           >
                             <i class="bx bx-trash"></i>
@@ -164,9 +135,9 @@
                         </div>
                       </td>
                     </tr>
-                    <tr v-if="filteredRapports.length === 0">
-                      <td colspan="6" class="text-center">
-                        Aucun rapport trouvé
+                    <tr v-if="filteredAnnonces.length === 0">
+                      <td colspan="7" class="text-center">
+                        Aucune annonce trouvée
                       </td>
                     </tr>
                   </tbody>
@@ -181,171 +152,234 @@
           </div>
         </b-tab>
 
-        <b-tab id="create-rapport">
+        <b-tab id="create-annonce">
           <template #title>
             <span class="d-block d-sm-none"><i class="bx bx-plus"></i></span>
-            <span class="d-none d-sm-block">Créer un Rapport</span>
+            <span class="d-none d-sm-block">Créer une Annonce</span>
           </template>
 
           <!-- Formulaire de création -->
           <div class="card">
             <div class="card-body">
-              <form ref="rapportForm" @submit.prevent="handleQuickSubmit">
+              <form ref="annonceForm" @submit.prevent="handleQuickSubmit">
                 <div class="row">
                   <div class="col-12 col-md-6 mb-3">
                     <FormField
-                      v-model="quickForm.objet"
-                      label="Objet du rapport"
+                      v-model="quickForm.titre_annonce"
+                      label="Titre de l'annonce"
                       type="text"
                       required
-                      id="quick_objet"
+                      id="quick_titre"
                     />
                   </div>
                   <div class="col-12 col-md-6 mb-3">
                     <FormField
-                      v-model="quickForm.campagne_id"
-                      label="Campagne"
+                      v-model="quickForm.visibilite"
+                      label="Visibilité"
                       type="select"
-                      :options="campagneOptions"
+                      :options="visibiliteOptions"
                       required
-                      id="quick_campagne"
+                      id="quick_visibilite"
+                    />
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-12 col-md-6 mb-3">
+                    <FormField
+                      v-model="quickForm.date_annonce"
+                      label="Date de publication"
+                      type="date"
+                      required
+                      id="quick_date"
                     />
                   </div>
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Description du rapport</label>
-
+                  <label class="form-label">Contenu de l'annonce</label>
                   <QuillEditor
                     ref="quickFormQuillEditor"
                     theme="snow"
                     :toolbar="toolbar1"
                     style="height: 300px"
-                    v-model:content="quickForm.description"
+                    v-model:content="quickForm.contenu_annonce"
                     content-type="html"
                   />
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Fichiers joints (optionnel)</label>
-
+                  <label class="form-label">Images (optionnel)</label>
                   <FileUpload
-                    v-model="quickForm.fichiers"
+                    v-model="quickForm.images"
                     :reset-trigger="quickFormResetTrigger"
                     :multiple="true"
-                    :max-size="10"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png,.txt"
+                    :max-size="5"
+                    accept=".jpg,.jpeg,.png,.gif,.webp"
                     @files-changed="onQuickFormFilesChanged"
                   />
                 </div>
 
-                <div class="d-flex justify-content-end gap-2">
+                <div class="d-flex justify-content-between">
                   <button
                     type="button"
-                    class="btn btn-secondary"
-                    @click="resetQuickForm"
+                    class="btn btn-warning"
+                    @click="previewQuickForm"
                   >
-                    Réinitialiser
+                    <i class="bx bx-search me-1"></i>
+                    Prévisualiser
                   </button>
+                  
+                  <div class="d-flex gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      @click="resetQuickForm"
+                    >
+                      Réinitialiser
+                    </button>
 
-                  <button
-                    type="submit"
-                    class="btn btn-primary"
-                    :disabled="loading || isUploading"
-                  >
-                    <span
-                      v-if="loading || isUploading"
-                      class="spinner-border spinner-border-sm me-1"
-                      role="status"
-                      aria-hidden="true"
-                    ></span>
-                    <span v-if="isUploading">Upload en cours...</span>
-                    <span v-else-if="loading">{{ "Création..." }}</span>
-                    <span v-else>{{ "Créer le Rapport" }}</span>
-                  </button>
+                    <button
+                      type="submit"
+                      class="btn btn-primary"
+                      :disabled="loading || isUploading"
+                    >
+                      <span
+                        v-if="loading || isUploading"
+                        class="spinner-border spinner-border-sm me-1"
+                        role="status"
+                        aria-hidden="true"
+                      ></span>
+                      <span v-if="isUploading">Upload en cours...</span>
+                      <span v-else-if="loading">Création...</span>
+                      <span v-else>Créer l'Annonce</span>
+                    </button>
+                  </div>
                 </div>
               </form>
+            </div>
+          </div>
+        </b-tab>
+
+        <b-tab id="annonces-published">
+          <template #title>
+            <span class="d-block d-sm-none"><i class="bx bx-globe"></i></span>
+            <span class="d-none d-sm-block">Annonces Publiées</span>
+          </template>
+
+          <!-- Vue publique des annonces -->
+          <div class="row">
+            <div 
+              v-for="annonce in publishedAnnonces" 
+              :key="'pub-' + annonce.id"
+              class="col-12 col-md-6 col-lg-4 mb-4"
+            >
+              <div class="card h-100 shadow-sm annonce-card">
+                <div 
+                  v-if="annonce.images_annonce && annonce.images_annonce.length > 0"
+                  class="card-img-top-container"
+                >
+                  <img 
+                    :src="annonce.images_annonce[0]" 
+                    class="card-img-top"
+                    :alt="annonce.titre_annonce"
+                  />
+                </div>
+                <div class="card-body d-flex flex-column">
+                  <h5 class="card-title">{{ annonce.titre_annonce }}</h5>
+                  <div class="card-text flex-grow-1" v-html="truncateText(annonce.contenu_annonce, 150)"></div>
+                  <div class="mt-auto">
+                    <small class="text-muted">
+                      <i class="bx bx-calendar me-1"></i>
+                      {{ formatDate(annonce.date_annonce) }}
+                    </small>
+                    <div class="mt-2">
+                      <button 
+                        class="btn btn-outline-primary btn-sm"
+                        @click="viewFullAnnonce(annonce)"
+                      >
+                        Lire la suite
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div v-if="publishedAnnonces.length === 0" class="col-12">
+              <div class="text-center py-5">
+                <i class="bx bx-info-circle display-4 text-muted"></i>
+                <p class="text-muted mt-3">Aucune annonce publiée pour le moment.</p>
+              </div>
             </div>
           </div>
         </b-tab>
       </b-tabs>
     </div>
 
-    <!-- Modal de détail du rapport -->
-
+    <!-- Modal de détail de l'annonce -->
     <b-modal
       v-model="showDetailModal"
-      title="Détail du Rapport"
+      title="Détail de l'Annonce"
       size="lg"
       @hidden="onDetailModalHidden"
       :hide-footer="true"
     >
-      <div v-if="selectedRapport" class="rapport-detail">
+      <div v-if="selectedAnnonce" class="annonce-detail">
         <div class="row mb-3">
           <div class="col-md-6">
-            <strong>Objet:</strong>
-            <p>{{ selectedRapport.objet }}</p>
+            <strong>Titre:</strong>
+            <p>{{ selectedAnnonce.titre_annonce }}</p>
           </div>
           <div class="col-md-6">
-            <strong>Campagne:</strong>
-            <p>{{ selectedRapport.campagne?.titre || "Non définie" }}</p>
+            <strong>Visibilité:</strong>
+            <p>
+              <span 
+                :class="getVisibilityBadgeClass(selectedAnnonce.visibilite)"
+                class="badge"
+              >
+                {{ getVisibilityLabel(selectedAnnonce.visibilite) }}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <strong>Date de publication:</strong>
+            <p>{{ formatDate(selectedAnnonce.date_annonce) }}</p>
+          </div>
+          <div class="col-md-6">
+            <strong>Créateur:</strong>
+            <p>{{ selectedAnnonce.created_by ? `${selectedAnnonce.created_by.prenom} ${selectedAnnonce.created_by.nom}` : '-' }}</p>
           </div>
         </div>
 
         <div class="mb-3">
-          <strong>Description:</strong>
+          <strong>Contenu:</strong>
           <div
-            v-html="selectedRapport.description"
-            class="mt-2 p-3 border rounded"
+            v-html="selectedAnnonce.contenu_annonce"
+            class="mt-2 p-3 border rounded content-display"
           ></div>
         </div>
 
         <div
           class="mb-3"
-          v-if="selectedRapport.fichiers && selectedRapport.fichiers.length > 0"
+          v-if="selectedAnnonce.images_annonce && selectedAnnonce.images_annonce.length > 0"
         >
-          <strong>Fichiers attachés:</strong>
-          <div class="mt-2">
-            <div
-              v-for="fichier in selectedRapport.fichiers"
-              :key="fichier.id"
-              class="d-flex justify-content-between align-items-center p-2 border rounded mb-2"
+          <strong>Images attachées:</strong>
+          <div class="mt-2 row">
+            <div 
+              v-for="(image, index) in selectedAnnonce.images_annonce" 
+              :key="index"
+              class="col-md-4 mb-3"
             >
-              <div>
-                <i class="bx bx-file me-2"></i>
-                {{ fichier.nom_original }}
-                <small class="text-muted"
-                  >({{ formatFileSize(fichier.taille_octets) }})</small
-                >
-              </div>
-              <div>
-                <button
-                  class="btn btn-sm btn-outline-primary me-2"
-                  @click="
-                    downloadFichierIndividuel(
-                      selectedRapport.id,
-                      fichier.id,
-                      fichier.nom_original
-                    )
-                  "
-                  :disabled="downloadingFiles[fichier.id]"
-                  title="Télécharger le fichier"
-                >
-                  <span
-                    v-if="downloadingFiles[fichier.id]"
-                    class="spinner-border spinner-border-sm"
-                    role="status"
-                  ></span>
-                  <i v-else class="bx bx-download"></i>
-                </button>
-
-                <button
-                  class="btn btn-sm btn-outline-danger"
-                  @click="deleteFichier(selectedRapport.id, fichier.id)"
-                >
-                  <i class="bx bx-trash"></i>
-                </button>
-              </div>
+              <img 
+                :src="image" 
+                class="img-fluid rounded shadow-sm cursor-pointer"
+                @click="showImageModals(image)"
+                :alt="`Image ${index + 1}`"
+              />
             </div>
           </div>
         </div>
@@ -354,10 +388,15 @@
           <button class="btn btn-secondary" @click="showDetailModal = false">
             Fermer
           </button>
-
+          <button
+            class="btn btn-warning"
+            @click="previewAnnonce(selectedAnnonce)"
+          >
+            Prévisualiser
+          </button>
           <button
             class="btn btn-primary"
-            @click="openEditModal(selectedRapport)"
+            @click="openEditModal(selectedAnnonce)"
           >
             Modifier
           </button>
@@ -365,10 +404,67 @@
       </div>
     </b-modal>
 
+    <!-- Modal de prévisualisation -->
+    <b-modal
+      v-model="showPreviewModal"
+      title="Prévisualisation de l'Annonce"
+      size="lg"
+      :hide-footer="true"
+    >
+      <div v-if="previewAnnonce" class="preview-container">
+        <div class="card border-0">
+          <div 
+            v-if="previewData.images_annonce && previewData.images_annonce.length > 0"
+            class="mb-3"
+          >
+            <img 
+              :src="previewData.images_annonce[0]" 
+              class="img-fluid rounded"
+              :alt="previewData.titre_annonce"
+            />
+          </div>
+          <div class="card-body p-0">
+            <h3 class="card-title">{{ previewData.titre_annonce }}</h3>
+            <p class="text-muted mb-3">
+              <i class="bx bx-calendar me-1"></i>
+              {{ formatDate(previewData.date_annonce) }}
+            </p>
+            <div class="card-text" v-html="previewData.contenu_annonce"></div>
+          </div>
+        </div>
+        
+        <div class="mt-4 d-flex justify-content-end gap-2">
+          <button class="btn btn-secondary" @click="showPreviewModal = false">
+            Fermer
+          </button>
+          <button 
+            v-if="!previewData.isPublished"
+            class="btn btn-success"
+            @click="confirmPublish"
+          >
+            <i class="bx bx-check-circle me-1"></i>
+            Publier cette annonce
+          </button>
+        </div>
+      </div>
+    </b-modal>
+
+    <!-- Modal d'image -->
+    <b-modal
+      v-model="showImageModal"
+      title="Image"
+      size="lg"
+      :hide-footer="true"
+    >
+      <div class="text-center">
+        <img :src="selectedImage" class="img-fluid" alt="Image agrandie" />
+      </div>
+    </b-modal>
+
     <!-- Modal d'ajout/modification -->
     <b-modal
       v-model="showModal"
-      :title="isEditing ? 'Modifier le rapport' : 'Ajouter un rapport'"
+      :title="isEditing ? 'Modifier l\'annonce' : 'Ajouter une annonce'"
       @hidden="resetForm"
       @cancel="handleCancel"
       :hide-footer="true"
@@ -378,47 +474,57 @@
         <div class="row">
           <div class="col-12 col-md-6 mb-3">
             <FormField
-              v-model="form.objet"
-              label="Objet du rapport"
+              v-model="form.titre_annonce"
+              label="Titre de l'annonce"
               type="text"
               required
-              id="objet"
+              id="titre_annonce"
             />
           </div>
           <div class="col-12 col-md-6 mb-3">
             <FormField
-              v-model="form.campagne_id"
-              label="Campagne"
+              v-model="form.visibilite"
+              label="Visibilité"
               type="select"
-              :options="campagneOptions"
+              :options="visibiliteOptions"
               required
-              id="campagne_id"
+              id="visibilite"
+            />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12 col-md-6 mb-3">
+            <FormField
+              v-model="form.date_annonce"
+              label="Date de publication"
+              type="date"
+              required
+              id="date_annonce"
             />
           </div>
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Description du rapport</label>
-
+          <label class="form-label">Contenu de l'annonce</label>
           <QuillEditor
             ref="modalFormQuillEditor"
             theme="snow"
             :toolbar="toolbar1"
             style="height: 300px"
-            v-model:content="form.description"
+            v-model:content="form.contenu_annonce"
             content-type="html"
           />
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Fichiers joints (optionnel) </label>
-
+          <label class="form-label">Images (optionnel)</label>
           <FileUpload
-            v-model="form.fichiers"
+            v-model="form.images"
             :reset-trigger="modalFormResetTrigger"
             :multiple="true"
-            :max-size="10"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png,.txt"
+            :max-size="5"
+            accept=".jpg,.jpeg,.png,.gif,.webp"
             @files-changed="onModalFormFilesChanged"
           />
         </div>
@@ -449,7 +555,7 @@
               isEditing ? "Modification..." : "Création..."
             }}</span>
             <span v-else>{{
-              isEditing ? "Modifier" : "Créer le Rapport"
+              isEditing ? "Modifier" : "Créer l'Annonce"
             }}</span>
           </button>
         </div>
@@ -460,13 +566,13 @@
     <b-modal
       v-model="showDeleteModal"
       title="Confirmer la suppression"
-      @hidden="selectedRapport = null"
+      @hidden="selectedAnnonce = null"
       @cancel="handleCancel"
       :hide-footer="true"
     >
-      <p>Êtes-vous sûr de vouloir supprimer ce rapport ?</p>
-      <div v-if="selectedRapport">
-        <strong>{{ selectedRapport.objet }}</strong>
+      <p>Êtes-vous sûr de vouloir supprimer cette annonce ?</p>
+      <div v-if="selectedAnnonce">
+        <strong>{{ selectedAnnonce.titre_annonce }}</strong>
       </div>
 
       <div class="modal-footer">
@@ -509,29 +615,32 @@ import TablePagination from "@/components/TablePagination.vue";
 import SearchBox from "@/components/SearchBox.vue";
 import FileUpload from "@/components/FileUpload.vue";
 
-import {
-  rapportService,
-  rapportFichierService,
-} from "@/services/rapport.service";
-import type {
-  Rapport,
-  CreateRapportRequest,
-  UpdateRapportRequest,
-} from "@/services/rapport.service";
 import { showSuccessMessage, showErrorMessage } from "@/helpers/notification";
 import { usePermissionStore } from "@/stores/permissionStore";
-import { campagneService } from "@/services/campagne";
-import type { Campagne } from "@/services/campagne";
 
-const campagneOptions = ref<{ value: number; label: string }[]>([]);
-const isLoading = ref(false);
-const errorMessage = ref("");
-const quickFormFileUploadKey = ref(0);
-const modalFormFileUploadKey = ref(0);
-const quickFormResetTrigger = ref(false);
-const modalFormResetTrigger = ref(false);
-const quickFormQuillEditor = ref();
-const modalFormQuillEditor = ref();
+// Types
+interface Annonce {
+  id: number;
+  id_annonce: number;
+  titre_annonce: string;
+  contenu_annonce: string;
+  date_annonce: string;
+  visibilite: 'brouillon' | 'publiee' | 'archivee';
+  images_annonce?: string[];
+  created_by?: {
+    nom: string;
+    prenom: string;
+  };
+  created_at?: string;
+}
+
+interface CreateAnnonceRequest {
+  titre_annonce: string;
+  contenu_annonce: string;
+  date_annonce: string;
+  visibilite: string;
+  images?: File[];
+}
 
 // Configuration de l'éditeur Quill
 const toolbar1 = [
@@ -546,12 +655,19 @@ const toolbar1 = [
   ["clean"],
 ];
 
+// Options de visibilité
+const visibiliteOptions = [
+  { value: 'brouillon', label: 'Brouillon' },
+  { value: 'publiee', label: 'Publiée' },
+  { value: 'archivee', label: 'Archivée' }
+];
+
 // Permissions
 const permissions = {
-  create: ["rapport:create"],
-  update: ["rapport:update"],
-  delete: ["rapport:delete"],
-  export: ["rapport:export"],
+  create: ["annonce:create"],
+  update: ["annonce:update"],
+  delete: ["annonce:delete"],
+  export: ["annonce:export"],
 };
 
 const permissionStore = usePermissionStore();
@@ -570,63 +686,68 @@ const canExport = computed(() =>
 );
 
 // État principal
-const rapports = ref<Rapport[]>([]);
+const annonces = ref<Annonce[]>([]);
 const searchQuery = ref("");
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const showModal = ref(false);
 const showDeleteModal = ref(false);
 const showDetailModal = ref(false);
+const showPreviewModal = ref(false);
+ const showImageModal = ref(false);
 const loading = ref(false);
 const quickLoading = ref(false);
 const isEditing = ref(false);
-const selectedRapport = ref<Rapport | null>(null);
+const selectedAnnonce = ref<Annonce | null>(null);
+const selectedImage = ref("");
 const isUploading = ref(false);
 const uploadProgress = ref<Record<string, number>>({});
-const isProcessing = computed(
-  () => loading.value || quickLoading.value || isUploading.value
-);
-const downloadingFiles = ref<Record<number, boolean>>({});
-const sendingMail = ref<Record<number, boolean>>({});
+const previewData = ref<any>({});
+
+const quickFormResetTrigger = ref(false);
+const modalFormResetTrigger = ref(false);
+const quickFormQuillEditor = ref();
+const modalFormQuillEditor = ref();
+
 // Formulaires
-
-const form = ref<CreateRapportRequest & { id?: number; fichiers?: File[] }>({
-  objet: "",
-  description: "",
-  campagne_id: 0,
-  fichiers: [],
+const form = ref<CreateAnnonceRequest & { id?: number; images?: File[] }>({
+  titre_annonce: "",
+  contenu_annonce: "",
+  date_annonce: "",
+  visibilite: "brouillon",
+  images: [],
 });
 
-const quickForm = ref<CreateRapportRequest & { fichiers?: File[] }>({
-  objet: "",
-  description: "",
-  campagne_id: 0,
-  fichiers: [],
+const quickForm = ref<CreateAnnonceRequest & { images?: File[] }>({
+  titre_annonce: "",
+  contenu_annonce: "",
+  date_annonce: "",
+  visibilite: "brouillon",
+  images: [],
 });
 
-const filteredRapports = computed(() => {
-  if (!searchQuery.value) return rapports.value;
+// Computed
+const filteredAnnonces = computed(() => {
+  if (!searchQuery.value) return annonces.value;
 
-  return rapports.value.filter(
-    (rapport) =>
-      rapport.objet.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      rapport.description
-        .toLowerCase()
-        .includes(searchQuery.value.toLowerCase()) ||
-      rapport.campagne?.titre
-        .toLowerCase()
-        .includes(searchQuery.value.toLowerCase()) ||
-      (rapport.created_by &&
-        `${rapport.created_by.prenom} ${rapport.created_by.nom}`
+  return annonces.value.filter(
+    (annonce) =>
+      annonce.titre_annonce.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      annonce.contenu_annonce.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      (annonce.created_by &&
+        `${annonce.created_by.prenom} ${annonce.created_by.nom}`
           .toLowerCase()
           .includes(searchQuery.value.toLowerCase()))
   );
 });
 
-const totalItems = computed(() => filteredRapports.value.length);
+const publishedAnnonces = computed(() => {
+  return annonces.value.filter(annonce => annonce.visibilite === 'publiee');
+});
+
+const totalItems = computed(() => filteredAnnonces.value.length);
 
 // Méthodes utilitaires
-
 const truncateText = (html: string, length: number): string => {
   if (!html) return "";
   const plainText = stripHtmlTags(html);
@@ -634,39 +755,31 @@ const truncateText = (html: string, length: number): string => {
     ? plainText.substring(0, length) + "..."
     : plainText;
 };
+
 const stripHtmlTags = (html: string): string => {
   if (!html) return "";
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
   return tempDiv.textContent || tempDiv.innerText || "";
 };
+
 const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return "-";
   return new Date(dateString).toLocaleDateString("fr-FR");
 };
 
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+const getVisibilityBadgeClass = (visibilite: string): string => {
+  switch (visibilite) {
+    case 'publiee': return 'bg-success';
+    case 'brouillon': return 'bg-warning';
+    case 'archivee': return 'bg-secondary';
+    default: return 'bg-secondary';
+  }
 };
 
-const loadCampagnes = async () => {
-  isLoading.value = true;
-  try {
-    const campagnes: Campagne[] = await campagneService.getAll();
-
-    campagneOptions.value = campagnes.map((c) => ({
-      value: c.id,
-      label: c.titre,
-    }));
-  } catch (error: any) {
-    showErrorMessage("Erreur lors du chargement des campagnes");
-  } finally {
-    isLoading.value = false;
-  }
+const getVisibilityLabel = (visibilite: string): string => {
+  const option = visibiliteOptions.find(opt => opt.value === visibilite);
+  return option ? option.label : visibilite;
 };
 
 // Méthodes de gestion des modals
@@ -675,14 +788,15 @@ const openAddModal = () => {
   showModal.value = true;
 };
 
-const openEditModal = (rapport: Rapport) => {
+const openEditModal = (annonce: Annonce) => {
   isEditing.value = true;
-  selectedRapport.value = rapport;
+  selectedAnnonce.value = annonce;
   form.value = {
-    id: rapport.id,
-    objet: rapport.objet,
-    description: rapport.description,
-    campagne_id: rapport.campagne_id,
+    id: annonce.id,
+    titre_annonce: annonce.titre_annonce,
+    contenu_annonce: annonce.contenu_annonce,
+    date_annonce: annonce.date_annonce,
+    visibilite: annonce.visibilite,
   };
 
   showModal.value = true;
@@ -690,301 +804,296 @@ const openEditModal = (rapport: Rapport) => {
 
   nextTick(() => {
     if (modalFormQuillEditor.value) {
-      modalFormQuillEditor.value.setHTML(rapport.description || "");
+      modalFormQuillEditor.value.setHTML(annonce.contenu_annonce || "");
     }
   });
 };
 
-const openDeleteModal = (rapport: Rapport) => {
-  selectedRapport.value = rapport;
+const openDeleteModal = (annonce: Annonce) => {
+  selectedAnnonce.value = annonce;
   showDeleteModal.value = true;
 };
 
-const viewRapport = (rapport: Rapport) => {
-  selectedRapport.value = rapport;
+const viewAnnonce = (annonce: Annonce) => {
+  selectedAnnonce.value = annonce;
   showDetailModal.value = true;
 };
 
-const resetForm = () => {
-  form.value = {
-    objet: "",
-    description: "",
-    campagne_id: 0,
-    fichiers: [],
+const viewFullAnnonce = (annonce: Annonce) => {
+  selectedAnnonce.value = annonce;
+  showDetailModal.value = true;
+};
+
+const previewAnnonce = (annonce: Annonce) => {
+  previewData.value = { ...annonce, isPublished: annonce.visibilite === 'publiee' };
+  showPreviewModal.value = true;
+  showDetailModal.value = false;
+};
+
+const previewQuickForm = () => {
+  previewData.value = {
+    titre_annonce: quickForm.value.titre_annonce,
+    contenu_annonce: quickForm.value.contenu_annonce,
+    date_annonce: quickForm.value.date_annonce,
+    visibilite: quickForm.value.visibilite,
+    images_annonce: quickForm.value.images?.map(file => URL.createObjectURL(file)) || [],
+    isPublished: false
   };
-  if (modalFormQuillEditor.value) {
-    modalFormQuillEditor.value.setHTML("");
-  }
-  selectedRapport.value = null;
-  uploadProgress.value = {};
-  modalFormResetTrigger.value = !modalFormResetTrigger.value;
+  showPreviewModal.value = true;
 };
 
-const resetQuickForm = () => {
-  quickForm.value = {
-    objet: "",
-    description: "",
-    campagne_id: 0,
-    fichiers: [],
-  };
-  if (quickFormQuillEditor.value) {
-    quickFormQuillEditor.value.setHTML("");
-  }
-  uploadProgress.value = {};
-  quickFormResetTrigger.value = !quickFormResetTrigger.value;
+const showImageModals = (imageUrl: string) => {
+  selectedImage.value = imageUrl;
+  showImageModal.value = true;
 };
 
-// Validation
-const validateForm = (formData: CreateRapportRequest): string[] => {
-  const errors: string[] = [];
-  if (!formData.objet.trim()) errors.push("L'objet du rapport est requis");
-  if (!formData.description.trim()) errors.push("La description est requise");
-  if (!formData.campagne_id) errors.push("La campagne est requise");
-  return errors;
+const onDetailModalHidden = () => {
+  selectedAnnonce.value = null;
 };
 
-// Gestion des soumissions
-const handleSubmit = async () => {
-  loading.value = true;
+// Méthodes de gestion des fichiers
+const onQuickFormFilesChanged = (files: File[]) => {
+  quickForm.value.images = files;
+};
+
+const onModalFormFilesChanged = (files: File[]) => {
+  form.value.images = files;
+};
+
+// Méthodes de soumission
+const handleQuickSubmit = async () => {
+  if (quickLoading.value || isUploading.value) return;
+
   try {
-    const description =
-      modalFormQuillEditor.value?.getHTML() || form.value.description;
-    form.value.description = description;
+    quickLoading.value = true;
+    isUploading.value = quickForm.value.images && quickForm.value.images.length > 0;
 
-    const errors = validateForm(form.value);
-    if (errors.length > 0) {
-      showErrorMessage(errors.join("\n"));
-      return;
+    // Simulation upload des images
+    let imageUrls: string[] = [];
+    if (quickForm.value.images && quickForm.value.images.length > 0) {
+      imageUrls = await simulateImageUpload(quickForm.value.images);
     }
 
-    // Valider les fichiers si présents
-    if (form.value.fichiers && form.value.fichiers.length > 0) {
-      if (!validateFiles(form.value.fichiers)) {
-        return;
-      }
+    // Création de la nouvelle annonce
+    const newAnnonce: Annonce = {
+      id: Date.now(),
+      id_annonce: Date.now(),
+      titre_annonce: quickForm.value.titre_annonce,
+      contenu_annonce: quickForm.value.contenu_annonce,
+      date_annonce: quickForm.value.date_annonce,
+      visibilite: quickForm.value.visibilite as 'brouillon' | 'publiee' | 'archivee',
+      images_annonce: imageUrls,
+      created_by: {
+        nom: "Utilisateur",
+        prenom: "Admin"
+      },
+      created_at: new Date().toISOString()
+    };
+
+    // Ajout à la liste
+    annonces.value.unshift(newAnnonce);
+
+    showSuccessMessage("Annonce créée avec succès");
+    resetQuickForm();
+
+  } catch (error) {
+    console.error("Erreur lors de la création:", error);
+    showErrorMessage("Erreur lors de la création de l'annonce");
+  } finally {
+    quickLoading.value = false;
+    isUploading.value = false;
+  }
+};
+
+const handleSubmit = async () => {
+  if (loading.value || isUploading.value) return;
+
+  try {
+    loading.value = true;
+    isUploading.value = form.value.images && form.value.images.length > 0;
+
+    // Simulation upload des images
+    let imageUrls: string[] = [];
+    if (form.value.images && form.value.images.length > 0) {
+      imageUrls = await simulateImageUpload(form.value.images);
     }
 
-    if (isEditing.value && selectedRapport.value) {
-      // Modification existante
-      const updateData: UpdateRapportRequest = {
-        objet: form.value.objet,
-        description: form.value.description,
-      };
-      const updatedRapport = await rapportService.update(
-        selectedRapport.value.id,
-        updateData
-      );
-
-      // Upload des nouveaux fichiers si présents
-      if (form.value.fichiers && form.value.fichiers.length > 0) {
-        await uploadFilesWithRapport(updatedRapport.id, form.value.fichiers);
-        // Recharger le rapport avec les nouveaux fichiers
-        const rapportWithFiles = await rapportService.getById(
-          updatedRapport.id
-        );
-        const index = rapports.value.findIndex(
-          (r) => r.id === updatedRapport.id
-        );
-        if (index !== -1) {
-          rapports.value[index] = rapportWithFiles;
-        }
-      } else {
-        const index = rapports.value.findIndex(
-          (r) => r.id === updatedRapport.id
-        );
-        if (index !== -1) {
-          rapports.value[index] = updatedRapport;
-        }
+    if (isEditing.value && form.value.id) {
+      // Modification
+      const index = annonces.value.findIndex(a => a.id === form.value.id);
+      if (index !== -1) {
+        annonces.value[index] = {
+          ...annonces.value[index],
+          titre_annonce: form.value.titre_annonce,
+          contenu_annonce: form.value.contenu_annonce,
+          date_annonce: form.value.date_annonce,
+          visibilite: form.value.visibilite as 'brouillon' | 'publiee' | 'archivee',
+          images_annonce: imageUrls.length > 0 ? imageUrls : annonces.value[index].images_annonce
+        };
       }
-
-      showSuccessMessage("Rapport modifié avec succès");
+      showSuccessMessage("Annonce modifiée avec succès");
     } else {
-      // Création nouvelle
-      const createData = {
-        objet: form.value.objet,
-        description: form.value.description,
-        campagne_id: form.value.campagne_id,
+      // Création
+      const newAnnonce: Annonce = {
+        id: Date.now(),
+        id_annonce: Date.now(),
+        titre_annonce: form.value.titre_annonce,
+        contenu_annonce: form.value.contenu_annonce,
+        date_annonce: form.value.date_annonce,
+        visibilite: form.value.visibilite as 'brouillon' | 'publiee' | 'archivee',
+        images_annonce: imageUrls,
+        created_by: {
+          nom: "Utilisateur",
+          prenom: "Admin"
+        },
+        created_at: new Date().toISOString()
       };
-
-      const newRapport = await rapportService.create(createData);
-
-      // Upload des fichiers si présents
-      if (form.value.fichiers && form.value.fichiers.length > 0) {
-        await uploadFilesWithRapport(newRapport.id, form.value.fichiers);
-        // Recharger le rapport avec les fichiers
-        const rapportWithFiles = await rapportService.getById(newRapport.id);
-        rapports.value.unshift(rapportWithFiles);
-      } else {
-        rapports.value.unshift(newRapport);
-      }
-
-      showSuccessMessage("Rapport créé avec succès");
+      annonces.value.unshift(newAnnonce);
+      showSuccessMessage("Annonce créée avec succès");
     }
 
     showModal.value = false;
     resetForm();
-  } catch (error: any) {
-    console.error(error);
-    showErrorMessage(error.message || "Erreur lors de la soumission");
+
+  } catch (error) {
+    console.error("Erreur lors de la soumission:", error);
+    showErrorMessage("Erreur lors de l'enregistrement");
   } finally {
     loading.value = false;
-  }
-};
-
-const handleQuickSubmit = async () => {
-  quickLoading.value = true;
-  try {
-    const errors = validateForm(quickForm.value);
-    if (errors.length > 0) {
-      showErrorMessage(errors.join("\n"));
-      return;
-    }
-
-    // Valider les fichiers si présents
-    if (quickForm.value.fichiers && quickForm.value.fichiers.length > 0) {
-      if (!validateFiles(quickForm.value.fichiers)) {
-        return;
-      }
-    }
-
-    const createData = {
-      objet: quickForm.value.objet,
-      description: quickForm.value.description,
-      campagne_id: quickForm.value.campagne_id,
-    };
-
-    const newRapport = await rapportService.create(createData);
-
-    // Upload des fichiers si présents
-    if (quickForm.value.fichiers && quickForm.value.fichiers.length > 0) {
-      await uploadFilesWithRapport(newRapport.id, quickForm.value.fichiers);
-      // Recharger le rapport avec les fichiers
-      const rapportWithFiles = await rapportService.getById(newRapport.id);
-      rapports.value.unshift(rapportWithFiles);
-    } else {
-      rapports.value.unshift(newRapport);
-    }
-
-    showSuccessMessage("Rapport créé avec succès");
-    resetQuickForm();
-  } catch (error: any) {
-    console.error(error);
-    showErrorMessage(error.message || "Erreur lors de la création");
-  } finally {
-    quickLoading.value = false;
-  }
-};
-
-const onQuickFormFilesChanged = (files: File[]) => {
-  if (files.length > 0) {
-    validateFiles(files);
-  }
-};
-
-const onModalFormFilesChanged = (files: File[]) => {
-  if (files.length > 0) {
-    validateFiles(files);
-  }
-};
-
-const validateFiles = (files: File[]) => {
-  const maxSize = 10 * 1024 * 1024; // 10MB
-  const allowedTypes = [
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "image/jpeg",
-    "image/png",
-    "text/plain",
-  ];
-
-  const errors: string[] = [];
-
-  files.forEach((file) => {
-    if (file.size > maxSize) {
-      errors.push(
-        `Le fichier "${file.name}" dépasse la taille maximale de 10MB`
-      );
-    }
-
-    if (!allowedTypes.includes(file.type)) {
-      errors.push(`Le type du fichier "${file.name}" n'est pas autorisé`);
-    }
-  });
-
-  if (errors.length > 0) {
-    showErrorMessage(errors.join("\n"));
-    return false;
-  }
-
-  return true;
-};
-
-const uploadFilesWithRapport = async (rapportId: number, files: File[]) => {
-  if (!files || files.length === 0) return;
-
-  isUploading.value = true;
-
-  try {
-    if (files.length === 1) {
-      // Upload d'un seul fichier
-      const file = files[0];
-
-      // Simuler le progress pour l'interface utilisateur
-      uploadProgress.value[file.name] = 0;
-
-      const result = await rapportFichierService.uploadSingle(rapportId, file);
-
-      uploadProgress.value[file.name] = 100;
-      showSuccessMessage(`Fichier "${file.name}" uploadé avec succès`);
-    } else {
-      // Upload multiple
-      files.forEach((file) => {
-        uploadProgress.value[file.name] = 0;
-      });
-
-      const result = await rapportFichierService.uploadMultiple(
-        rapportId,
-        files
-      );
-
-      // Mettre à jour le progress
-      files.forEach((file) => {
-        uploadProgress.value[file.name] = 100;
-      });
-
-      showSuccessMessage(`${files.length} fichier(s) uploadé(s) avec succès`);
-    }
-  } catch (error: any) {
-    console.error("Erreur upload:", error);
-    showErrorMessage(
-      "Erreur lors de l'upload des fichiers: " +
-        (error.message || "Erreur inconnue")
-    );
-    throw error;
-  } finally {
     isUploading.value = false;
-    uploadProgress.value = {};
   }
 };
 
 const handleDelete = async () => {
-  if (!selectedRapport.value) return;
+  if (!selectedAnnonce.value || loading.value) return;
 
-  loading.value = true;
   try {
-    await rapportService.delete(selectedRapport.value.id);
-    rapports.value = rapports.value.filter(
-      (r) => r.id !== selectedRapport.value!.id
-    );
-    showSuccessMessage("Rapport supprimé avec succès");
+    loading.value = true;
+
+    // Simulation de suppression
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const index = annonces.value.findIndex(a => a.id === selectedAnnonce.value!.id);
+    if (index !== -1) {
+      annonces.value.splice(index, 1);
+    }
+
+    showSuccessMessage("Annonce supprimée avec succès");
     showDeleteModal.value = false;
-  } catch (error: any) {
-    showErrorMessage(error.message || "Erreur lors de la suppression");
+    selectedAnnonce.value = null;
+
+  } catch (error) {
+    console.error("Erreur lors de la suppression:", error);
+    showErrorMessage("Erreur lors de la suppression");
   } finally {
     loading.value = false;
+  }
+};
+
+const publishAnnonce = async (annonce: Annonce) => {
+  if (annonce.visibilite === 'publiee') return;
+
+  try {
+    loading.value = true;
+    
+    // Simulation de publication
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const index = annonces.value.findIndex(a => a.id === annonce.id);
+    if (index !== -1) {
+      annonces.value[index].visibilite = 'publiee';
+    }
+
+    showSuccessMessage("Annonce publiée avec succès");
+
+  } catch (error) {
+    console.error("Erreur lors de la publication:", error);
+    showErrorMessage("Erreur lors de la publication");
+  } finally {
+    loading.value = false;
+  }
+};
+
+const confirmPublish = async () => {
+  if (!previewData.value) return;
+
+  try {
+    loading.value = true;
+    
+    // Si c'est une prévisualisation du quick form, créer l'annonce
+    if (!previewData.value.id) {
+      const imageUrls = quickForm.value.images ? 
+        await simulateImageUpload(quickForm.value.images) : [];
+      
+      const newAnnonce: Annonce = {
+        id: Date.now(),
+        id_annonce: Date.now(),
+        titre_annonce: quickForm.value.titre_annonce,
+        contenu_annonce: quickForm.value.contenu_annonce,
+        date_annonce: quickForm.value.date_annonce,
+        visibilite: 'publiee',
+        images_annonce: imageUrls,
+        created_by: {
+          nom: "Utilisateur",
+          prenom: "Admin"
+        },
+        created_at: new Date().toISOString()
+      };
+      
+      annonces.value.unshift(newAnnonce);
+      resetQuickForm();
+    } else {
+      // Publier une annonce existante
+      const index = annonces.value.findIndex(a => a.id === previewData.value.id);
+      if (index !== -1) {
+        annonces.value[index].visibilite = 'publiee';
+      }
+    }
+
+    showSuccessMessage("Annonce publiée avec succès");
+    showPreviewModal.value = false;
+
+  } catch (error) {
+    console.error("Erreur lors de la publication:", error);
+    showErrorMessage("Erreur lors de la publication");
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Méthodes de réinitialisation
+const resetForm = () => {
+  form.value = {
+    titre_annonce: "",
+    contenu_annonce: "",
+    date_annonce: "",
+    visibilite: "brouillon",
+    images: [],
+  };
+  
+  modalFormResetTrigger.value = !modalFormResetTrigger.value;
+  
+  if (modalFormQuillEditor.value) {
+    modalFormQuillEditor.value.setHTML("");
+  }
+  
+  isEditing.value = false;
+  selectedAnnonce.value = null;
+};
+
+const resetQuickForm = () => {
+  quickForm.value = {
+    titre_annonce: "",
+    contenu_annonce: "",
+    date_annonce: "",
+    visibilite: "brouillon",
+    images: [],
+  };
+  
+  quickFormResetTrigger.value = !quickFormResetTrigger.value;
+  
+  if (quickFormQuillEditor.value) {
+    quickFormQuillEditor.value.setHTML("");
   }
 };
 
@@ -992,133 +1101,138 @@ const handleCancel = () => {
   showModal.value = false;
   showDeleteModal.value = false;
   resetForm();
-  selectedRapport.value = null;
-  isEditing.value = false;
 };
 
-// Méthodes d'export
-const exportPdf = async (rapportId: number,filename?: string) => {
-  try {
-    await rapportService.downloadPdf(rapportId,filename);
-    showSuccessMessage("Export PDF en cours de téléchargement");
-  } catch (error: any) {
-    showErrorMessage("Erreur lors de l'export PDF");
-  }
-};
-
-const exportExcel = async (rapportId: number) => {
-  try {
-    await rapportService.downloadExcel(rapportId);
-    showSuccessMessage("Export Excel en cours de téléchargement");
-  } catch (error: any) {
-    showErrorMessage("Erreur lors de l'export Excel");
-  }
-};
-
-
-const onDetailModalHidden = () => {
-  selectedRapport.value = null;
-  downloadingFiles.value = {};
-  sendingMail.value = {}; 
-};
-
-// Gestion des fichiers
-
-const downloadFichierIndividuel = async (
-  rapportId: number,
-  fichierId: number,
-  filename: string
-) => {
-  downloadingFiles.value[fichierId] = true;
-  try {
-    await rapportFichierService.downloadFichier(rapportId, fichierId,filename);
-    showSuccessMessage(`Fichier "${filename}" téléchargé avec succès`);
-  } catch (error: any) {
-    showErrorMessage(`Erreur lors du téléchargement du fichier "${filename}"`);
-    console.error("Erreur téléchargement:", error);
-  } finally {
-    downloadingFiles.value[fichierId] = false;
-  }
-};
-
-const deleteFichier = async (rapportId: number, fichierId: number) => {
-  try {
-    await rapportFichierService.deleteFichier(rapportId, fichierId);
-    showSuccessMessage("Fichier supprimé avec succès");
-
-    // Recharger et synchroniser
-    const updatedRapport = await rapportService.getById(rapportId);
-    syncRapportData(updatedRapport);
-  } catch (error: any) {
-    showErrorMessage("Erreur lors de la suppression du fichier");
-  }
-};
-
-
-const sendMailRapport = async (rapport: Rapport) => {
-  sendingMail.value[rapport.id] = true;
-  try {
-    const result = await rapportService.sendMail(rapport.id);
-    if (result.success) {
-      showSuccessMessage(/*result.message ||*/ "Mail envoyé avec succès au commanditaire");
-    } else {
-      showErrorMessage(result.message || "Erreur lors de l'envoi du mail");
+// Simulation d'upload d'images
+const simulateImageUpload = async (files: File[]): Promise<string[]> => {
+  const imageUrls: string[] = [];
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    // Simulation du progress
+    for (let progress = 0; progress <= 100; progress += 20) {
+      uploadProgress.value[file.name] = progress;
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
-  } catch (error: any) {
-    console.error("Erreur envoi mail:", error);
-    showErrorMessage(error.message || "Erreur lors de l'envoi du mail");
-  } finally {
-    sendingMail.value[rapport.id] = false;
+    
+    // Créer une URL temporaire pour l'image
+    imageUrls.push(URL.createObjectURL(file));
   }
+  
+  return imageUrls;
 };
 
-
-
-const syncRapportData = (updatedRapport: Rapport) => {
-  // Mettre à jour selectedRapport si c'est le même
-  if (selectedRapport.value && selectedRapport.value.id === updatedRapport.id) {
-    selectedRapport.value = updatedRapport;
+// Données de mock
+const mockAnnonces: Annonce[] = [
+  {
+    id: 1,
+    id_annonce: 1001,
+    titre_annonce: "Renforcement des heures de mathématiques",
+    contenu_annonce: "<p>À partir du deuxième trimestre, les élèves de 4e et 3e auront une heure supplémentaire de mathématiques chaque semaine afin de mieux préparer les examens nationaux.</p><ul><li>Heures ajoutées : mercredi après-midi</li><li>Groupes de niveau mis en place</li><li>Séances d'exercices encadrées</li></ul>",
+    date_annonce: "2024-12-15",
+    visibilite: "publiee",
+    images_annonce: [
+      "https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "https://images.unsplash.com/photo-1453733190371-0a9bedd82893?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    ],
+    created_by: {
+      nom: "ZINSOU",
+      prenom: "Charlemagne"
+    },
+    created_at: "2024-12-10T10:00:00Z"
+  },
+  {
+    id: 2,
+    id_annonce: 1002,
+    titre_annonce: "Cours de rattrapage pour les Terminales",
+    contenu_annonce: "<p>Des cours de rattrapage seront organisés les samedis pour les classes de Terminale (A, C et D) en vue du Baccalauréat.</p><ul><li>Matières : Maths, Physique, Philo</li><li>Horaire : 08h à 12h</li><li>Présence obligatoire</li></ul>",
+    date_annonce: "2024-12-20",
+    visibilite: "publiee",
+    images_annonce: [
+      "https://plus.unsplash.com/premium_photo-1713890424186-11d3584a22fc?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    ],
+    created_by: {
+      nom: "AGOSSA",
+      prenom: "Clarisse"
+    },
+    created_at: "2024-12-18T14:30:00Z"
+  },
+  {
+    id: 3,
+    id_annonce: 1003,
+    titre_annonce: "Séminaire des élèves délégués",
+    contenu_annonce: "<p>Les délégués de classe de la 6e à la Terminale sont conviés à un séminaire de leadership scolaire.</p><ul><li>Date : samedi 13 janvier 2025</li><li>Lieu : Salle Polyvalente</li><li>Thèmes : responsabilité, communication, entraide</li></ul>",
+    date_annonce: "2025-01-15",
+    visibilite: "brouillon",
+    images_annonce: [
+      "https://images.unsplash.com/flagged/photo-1579133311477-9121405c78dd?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "https://images.unsplash.com/photo-1632215863479-201029d93143?q=80&w=869&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    ],
+    created_by: {
+      nom: "KIKI",
+      prenom: "Ulrich"
+    },
+    created_at: "2024-12-22T09:15:00Z"
+  },
+  {
+    id: 4,
+    id_annonce: 1004,
+    titre_annonce: "Journée sportive interclasses",
+    contenu_annonce: "<p>La journée sportive annuelle réunira toutes les classes de la 6e à la 1ère pour des compétitions : football, handball, athlétisme, relais, etc.</p><p>Chaque élève devra porter l’uniforme de sport de l’école. Les équipes seront constituées par niveau.</p>",
+    date_annonce: "2025-01-25",
+    visibilite: "brouillon",
+    images_annonce: [],
+    created_by: {
+      nom: "TOGNISSÈ",
+      prenom: "Adjovi"
+    },
+    created_at: "2024-12-23T16:45:00Z"
+  },
+  {
+    id: 5,
+    id_annonce: 1005,
+    titre_annonce: "Concours de dictée pour les 6e et 5e",
+    contenu_annonce: "<p>Un concours de dictée est lancé pour les élèves de 6e et 5e. Les meilleurs recevront des récompenses en fin de trimestre.</p><ul><li>Inscription jusqu’au 31 janvier</li><li>Épreuve prévue le 10 février</li><li>Jury composé de professeurs de français</li></ul>",
+    date_annonce: "2025-02-10",
+    visibilite: "publiee",
+    images_annonce: [
+      "https://images.unsplash.com/photo-1610500796951-dea9be78d987?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "https://images.unsplash.com/photo-1726831662518-c48d983f9b86?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "https://images.unsplash.com/photo-1583951171188-48057a97073f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y29uY291ciUyMGVjcml0JTIwZWNvbGUlMjBhZnJpcXVlfGVufDB8fDB8fHww"
+    ],
+    created_by: {
+      nom: "YAROU",
+      prenom: "Firmin"
+    },
+    created_at: "2024-12-20T11:20:00Z"
+  },
+  {
+    id: 6,
+    id_annonce: 1006,
+    titre_annonce: "Révision des règlements intérieurs",
+    contenu_annonce: "<p>Le règlement intérieur de l’établissement a été mis à jour. Des réunions de sensibilisation par classe auront lieu dès la rentrée de février.</p><ul><li>Tenue vestimentaire</li><li>Utilisation des téléphones</li><li>Respect des horaires</li></ul>",
+    date_annonce: "2025-02-28",
+    visibilite: "archivee",
+    images_annonce: [
+      "https://images.unsplash.com/photo-1551241681-2aae145af5df?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cmVnbGVtZW50JTIwZWNvbGUlMjBhZnJpcXVlfGVufDB8fDB8fHww"
+    ],
+    created_by: {
+      nom: "BIO TCHANE",
+      prenom: "Mariam"
+    },
+    created_at: "2024-12-19T13:10:00Z"
   }
-  // Mettre à jour dans le tableau principal
-  const index = rapports.value.findIndex((r) => r.id === updatedRapport.id);
-  if (index !== -1) {
-    rapports.value[index] = updatedRapport;
-  }
-};
+];
 
-// Chargement initial
 
-onMounted(async () => {
-  loading.value = true;
-  try {
-    await Promise.all([
-      rapportService.getAll().then((data) => {
-        rapports.value = data;
-      }),
-      loadCampagnes(),
-    ]);
-  } catch (error: any) {
-    showErrorMessage("Erreur lors du chargement des données");
-  } finally {
-    loading.value = false;
-  }
+// Initialisation
+onMounted(() => {
+  // Charger les données de mock
+  annonces.value = [...mockAnnonces];
+  
+  // Définir la date par défaut à aujourd'hui
+  const today = new Date().toISOString().split('T')[0];
+  form.value.date_annonce = today;
+  quickForm.value.date_annonce = today;
 });
 </script>
-
-<style scoped>
-.rapport-detail .border {
-  background-color: #f8f9fa;
-}
-
-.dropdown-menu {
-  min-width: auto;
-}
-
-.table-responsive {
-  border-radius: 0.375rem;
-}
-
-.badge {
-  font-size: 0.75em;
-}
-</style>

@@ -48,16 +48,16 @@ export const MENU_ITEMS: MenuItemType[] = [
         route: { name: 'seance.index' },
     },
     {
-        key: 'commanditaire',
+        key: 'evaluation',
         icon: 'fluent-mdl2:edit-note',
         label: 'Evaluations',
-        route: { name: 'commanditaire.index' },
+        route: { name: 'evaluation.index' },
     },
     {
-        key: 'commanditaire',
+        key: 'bulletin',
         icon: 'solar:bill-list-broken',
         label: 'Bulletin de notes',
-        route: { name: 'commanditaire.index' },
+        route: { name: 'bulletin.index' },
     }, 
     {
         key: 'annonce',

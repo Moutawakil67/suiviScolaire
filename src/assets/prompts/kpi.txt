@@ -1,0 +1,32 @@
+Indicateurs Clés de Performance pour Administrateur d'Établissement
+1. Indicateurs de Performance Académique
+1.1 Résultats Scolaires
+Taux de réussite global : Pourcentage d'élèves ayant validé leur niveau/année
+Taux de réussite par niveau : Secondaire 
+Taux de réussite aux examens officiels : BAC, BEPC, CEP, CAP, BTS, etc.
+Évolution des moyennes générales : Comparaison sur 3-5 ans
+Classement des matières : Identification des forces et faiblesses par discipline
+Pourcentage d'élèves en difficulté : Élèves avec moyenne < 10/20
+1.2 Parcours
+Taux de redoublement : Par niveau et évolution temporelle
+Taux d'abandon scolaire : Avec analyse des motifs
+Continuité pédagogique : Pourcentage d'élèves poursuivant dans l'établissement
+2. Indicateurs de Gestion des Ressources Humaines
+2.1 Corps Enseignant
+Taux d'encadrement : Nombre d'élèves par enseignant
+Taux de présence des enseignants : Pourcentage d'heures effectuées
+Répartition des qualifications : Diplômes et certifications du personnel
+Taux de rotation du personnel : Départs/arrivées par année
+Charge de travail par enseignant : Nombre d'heures et d'élèves suivis
+3. Indicateurs d'Assiduité et Discipline
+3.1 Présence des Élèves
+Taux de présence global : Pourcentage journalier/mensuel/annuel
+Taux d'absentéisme par niveau : Identification des classes à risque
+Taux d'absentéisme justifié/non justifié : Ratio et évolution
+Retards fréquents : Nombre d'élèves avec retards récurrents
+Durée moyenne des absences : En jours par élève
+3.2 Discipline
+Nombre d'incidents disciplinaires : Par mois/trimestre
+Répartition des sanctions : Types et fréquences
+Taux de récidive : Élèves avec incidents multiples
+

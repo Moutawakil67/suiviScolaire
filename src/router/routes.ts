@@ -79,7 +79,7 @@ const dashboardRoutes = [
     },
     {
         path: '/evaluation',
-        name: 'commanditaire.index',
+        name: 'evaluation.index',
         meta: {
             title: setTitle('Listes des evalutions'),
             authRequired: true,
@@ -87,7 +87,20 @@ const dashboardRoutes = [
                 { text: 'Listes des evalutions' }
             ]
         },
-        component: () => import('@/views/commanditaire/index.vue'),
+        component: () => import('@/views/evaluation/index.vue'),
+       
+    },
+    {
+        path: '/bulletin',
+        name: 'bulletin.index',
+        meta: {
+            title: setTitle('Gestions des bulletins'),
+            authRequired: true,
+            breadcrumb: [
+                { text: 'Gestions des bulletins' }
+            ]
+        },
+        component: () => import('@/views/bulletin/index.vue'),
        
     },
     {
