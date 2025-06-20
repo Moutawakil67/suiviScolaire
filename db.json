@@ -41,6 +41,16 @@
       "lastName": "Techzaa",
       "role": "user",
       "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb2RlcnRoZW1lcyIsImF1ZCI6Imh0dHBzOi8vY29kZXJ0aGVtZXMuY29tLyIsInN1YiI6InN1cHBvcnRAY29kZXJ0aGVtZXMuY29tIiwibGFzdE5hbWUiOiJDb2RlcnRoZW1lcyIsIkVtYWlsIjoic3VwcG9ydEBjb2RlcnRoZW1lcy5jb20iLCJSb2xlIjoiQWRtaW4iLCJmaXJzdE5hbWUiOiJBcm91bmQifQ.yTJpBUmQ_T1dUf-dIdgxXn16KZjhvXw6cUT1sFhnOtKJ3-67gnRCC41nNVGLJpyjv4HCLVj0ytTbmfWzWcY_2Q"
+    },
+    {
+      "id": "2",
+      "email": "user@email.com",
+      "username": "user",
+      "password": "password",
+      "firstName": "User",
+      "lastName": "Techzaa",
+      "role": "user",
+      "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb2RlcnRoZW1lcyIsImF1ZCI6Imh0dHBzOi8vY29kZXJ0aGVtZXMuY29tLyIsInN1YiI6InN1cHBvcnRAY29kZXJ0aGVtZXMuY29tIiwibGFzdE5hbWUiOiJDb2RlcnRoZW1lcyIsIkVtYWlsIjoic3VwcG9ydEBjb2RlcnRoZW1lcy5jb20iLCJSb2xlIjoiQWRtaW4iLCJmaXJzdE5hbWUiOiJBcm91bmQifQ.yTJpBUmQ_T1dUf-dIdgxXn16KZjhvXw6cUT1sFhnOtKJ3-67gnRCC41nNVGLJpyjv4HCLVj0ytTbmfWzWcY_2Q"
     }
   ],
   "medias": [

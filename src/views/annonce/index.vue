@@ -1,632 +1,326 @@
 <template>
   <VerticalLayout>
     <div class="container-fluid">
-      <PageTitle title="Gestion des Annonces" />
+      <PageTitle title="Annonces de l'École" />
 
-      <!-- Onglets principaux -->
-      <b-tabs content-class="pt-2 text-muted" class="mt-3" justified>
-        <b-tab id="annonces-list" active>
-          <template #title>
-            <span class="d-block d-sm-none"><i class="bx bx-list-ul"></i></span>
-            <span class="d-none d-sm-block">Liste des Annonces</span>
-          </template>
-
-          <!-- Liste des annonces -->
-          <div class="row g-3 mb-4">
-            <div class="col-12 col-md-6">
-              <SearchBox
-                v-model="searchQuery"
-                placeholder="Rechercher une annonce..."
-                class="w-100"
-              />
-            </div>
-            <div
-              class="col-12 col-md-6 d-flex justify-content-md-end justify-content-center gap-2"
-            >
-              <LoadingButton
-                v-if="canCreate"
-                variant="primary"
-                @click="openAddModal"
-              >
-                <i class="bx bx-plus me-1"></i> Nouvelle Annonce
-              </LoadingButton>
-              <ExportButton
-                v-if="canExport"
-                :data="annonces"
-                filename="annonces"
-                label="Exporter"
-                class="flex-shrink-0"
-              />
-            </div>
-          </div>
-
-          <!-- Tableau des annonces -->
-          <div class="card">
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table table-centered table-hover">
-                  <thead>
-                    <tr>
-                      <th>Titre</th>
-                      <th>Contenu</th>
-                      <th>Date de publication</th>
-                      <th>Visibilité</th>
-                      <th>Images</th>
-                      <th>Créateur</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="annonce in filteredAnnonces" :key="annonce.id">
-                      <td>
-                        <div>
-                          <strong>{{ annonce.titre_annonce }}</strong>
-                          <br />
-                          <small class="text-muted">ID: {{ annonce.id_annonce }}</small>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="content-preview">
-                          {{ truncateText(annonce.contenu_annonce, 80) }}
-                        </div>
-                      </td>
-                      <td>{{ formatDate(annonce.date_annonce) }}</td>
-                      <td>
-                        <span 
-                          :class="getVisibilityBadgeClass(annonce.visibilite)"
-                          class="badge"
-                        >
-                          {{ getVisibilityLabel(annonce.visibilite) }}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          v-if="annonce.images_annonce && annonce.images_annonce.length > 0"
-                          class="badge bg-info"
-                        >
-                          {{ annonce.images_annonce.length }} image(s)
-                        </span>
-                        <span v-else class="badge bg-secondary">Aucune image</span>
-                      </td>
-                      <td>
-                        <span v-if="annonce.created_by">
-                          {{ `${annonce.created_by.prenom} ${annonce.created_by.nom}` }}
-                        </span>
-                        <span v-else class="text-muted">-</span>
-                      </td>
-                      <td>
-                        <div class="d-flex gap-1">
-                          <button
-                            class="btn btn-sm btn-soft-info"
-                            @click="viewAnnonce(annonce)"
-                            title="Voir les détails"
-                          >
-                            <i class="bx bx-show"></i>
-                          </button>
-                          <button
-                            class="btn btn-sm btn-soft-warning"
-                            @click="previewAnnonce(annonce)"
-                            title="Prévisualiser"
-                          >
-                            <i class="bx bx-search"></i>
-                          </button>
-                          <button
-                            class="btn btn-sm btn-soft-success"
-                            @click="publishAnnonce(annonce)"
-                            :disabled="annonce.visibilite === 'publiee'"
-                            title="Publier"
-                          >
-                            <i class="bx bx-check-circle"></i>
-                          </button>
-                          <button
-                            class="btn btn-sm btn-soft-primary"
-                            @click="openEditModal(annonce)"
-                            title="Modifier"
-                          >
-                            <i class="bx bx-pencil"></i>
-                          </button>
-                          <button
-                            class="btn btn-sm btn-soft-danger"
-                            @click="openDeleteModal(annonce)"
-                            title="Supprimer"
-                          >
-                            <i class="bx bx-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr v-if="filteredAnnonces.length === 0">
-                      <td colspan="7" class="text-center">
-                        Aucune annonce trouvée
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <TablePagination
-                v-model:currentPage="currentPage"
-                :total-items="totalItems"
-                :per-page="itemsPerPage"
-              />
-            </div>
-          </div>
-        </b-tab>
-
-        <b-tab id="create-annonce">
-          <template #title>
-            <span class="d-block d-sm-none"><i class="bx bx-plus"></i></span>
-            <span class="d-none d-sm-block">Créer une Annonce</span>
-          </template>
-
-          <!-- Formulaire de création -->
-          <div class="card">
-            <div class="card-body">
-              <form ref="annonceForm" @submit.prevent="handleQuickSubmit">
-                <div class="row">
-                  <div class="col-12 col-md-6 mb-3">
-                    <FormField
-                      v-model="quickForm.titre_annonce"
-                      label="Titre de l'annonce"
-                      type="text"
-                      required
-                      id="quick_titre"
-                    />
-                  </div>
-                  <div class="col-12 col-md-6 mb-3">
-                    <FormField
-                      v-model="quickForm.visibilite"
-                      label="Visibilité"
-                      type="select"
-                      :options="visibiliteOptions"
-                      required
-                      id="quick_visibilite"
-                    />
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-12 col-md-6 mb-3">
-                    <FormField
-                      v-model="quickForm.date_annonce"
-                      label="Date de publication"
-                      type="date"
-                      required
-                      id="quick_date"
-                    />
-                  </div>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Contenu de l'annonce</label>
-                  <QuillEditor
-                    ref="quickFormQuillEditor"
-                    theme="snow"
-                    :toolbar="toolbar1"
-                    style="height: 300px"
-                    v-model:content="quickForm.contenu_annonce"
-                    content-type="html"
-                  />
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Images (optionnel)</label>
-                  <FileUpload
-                    v-model="quickForm.images"
-                    :reset-trigger="quickFormResetTrigger"
-                    :multiple="true"
-                    :max-size="5"
-                    accept=".jpg,.jpeg,.png,.gif,.webp"
-                    @files-changed="onQuickFormFilesChanged"
-                  />
-                </div>
-
-                <div class="d-flex justify-content-between">
-                  <button
-                    type="button"
-                    class="btn btn-warning"
-                    @click="previewQuickForm"
-                  >
-                    <i class="bx bx-search me-1"></i>
-                    Prévisualiser
-                  </button>
-                  
-                  <div class="d-flex gap-2">
-                    <button
-                      type="button"
-                      class="btn btn-secondary"
-                      @click="resetQuickForm"
-                    >
-                      Réinitialiser
-                    </button>
-
-                    <button
-                      type="submit"
-                      class="btn btn-primary"
-                      :disabled="loading || isUploading"
-                    >
-                      <span
-                        v-if="loading || isUploading"
-                        class="spinner-border spinner-border-sm me-1"
-                        role="status"
-                        aria-hidden="true"
-                      ></span>
-                      <span v-if="isUploading">Upload en cours...</span>
-                      <span v-else-if="loading">Création...</span>
-                      <span v-else>Créer l'Annonce</span>
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </b-tab>
-
-        <b-tab id="annonces-published">
-          <template #title>
-            <span class="d-block d-sm-none"><i class="bx bx-globe"></i></span>
-            <span class="d-none d-sm-block">Annonces Publiées</span>
-          </template>
-
-          <!-- Vue publique des annonces -->
-          <div class="row">
-            <div 
-              v-for="annonce in publishedAnnonces" 
-              :key="'pub-' + annonce.id"
-              class="col-12 col-md-6 col-lg-4 mb-4"
-            >
-              <div class="card h-100 shadow-sm annonce-card">
-                <div 
-                  v-if="annonce.images_annonce && annonce.images_annonce.length > 0"
-                  class="card-img-top-container"
-                >
-                  <img 
-                    :src="annonce.images_annonce[0]" 
-                    class="card-img-top"
-                    :alt="annonce.titre_annonce"
-                  />
-                </div>
-                <div class="card-body d-flex flex-column">
-                  <h5 class="card-title">{{ annonce.titre_annonce }}</h5>
-                  <div class="card-text flex-grow-1" v-html="truncateText(annonce.contenu_annonce, 150)"></div>
-                  <div class="mt-auto">
-                    <small class="text-muted">
-                      <i class="bx bx-calendar me-1"></i>
-                      {{ formatDate(annonce.date_annonce) }}
-                    </small>
-                    <div class="mt-2">
-                      <button 
-                        class="btn btn-outline-primary btn-sm"
-                        @click="viewFullAnnonce(annonce)"
-                      >
-                        Lire la suite
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div v-if="publishedAnnonces.length === 0" class="col-12">
-              <div class="text-center py-5">
-                <i class="bx bx-info-circle display-4 text-muted"></i>
-                <p class="text-muted mt-3">Aucune annonce publiée pour le moment.</p>
-              </div>
-            </div>
-          </div>
-        </b-tab>
-      </b-tabs>
-    </div>
-
-    <!-- Modal de détail de l'annonce -->
-    <b-modal
-      v-model="showDetailModal"
-      title="Détail de l'Annonce"
-      size="lg"
-      @hidden="onDetailModalHidden"
-      :hide-footer="true"
-    >
-      <div v-if="selectedAnnonce" class="annonce-detail">
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <strong>Titre:</strong>
-            <p>{{ selectedAnnonce.titre_annonce }}</p>
-          </div>
-          <div class="col-md-6">
-            <strong>Visibilité:</strong>
-            <p>
-              <span 
-                :class="getVisibilityBadgeClass(selectedAnnonce.visibilite)"
-                class="badge"
-              >
-                {{ getVisibilityLabel(selectedAnnonce.visibilite) }}
-              </span>
-            </p>
-          </div>
+      <!-- Barre de recherche et filtres -->
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6">
+          <SearchBox
+            v-model="searchQuery"
+            placeholder="Rechercher une annonce..."
+            class="w-100"
+          />
         </div>
-
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <strong>Date de publication:</strong>
-            <p>{{ formatDate(selectedAnnonce.date_annonce) }}</p>
-          </div>
-          <div class="col-md-6">
-            <strong>Créateur:</strong>
-            <p>{{ selectedAnnonce.created_by ? `${selectedAnnonce.created_by.prenom} ${selectedAnnonce.created_by.nom}` : '-' }}</p>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <strong>Contenu:</strong>
-          <div
-            v-html="selectedAnnonce.contenu_annonce"
-            class="mt-2 p-3 border rounded content-display"
-          ></div>
-        </div>
-
-        <div
-          class="mb-3"
-          v-if="selectedAnnonce.images_annonce && selectedAnnonce.images_annonce.length > 0"
-        >
-          <strong>Images attachées:</strong>
-          <div class="mt-2 row">
-            <div 
-              v-for="(image, index) in selectedAnnonce.images_annonce" 
-              :key="index"
-              class="col-md-4 mb-3"
-            >
-              <img 
-                :src="image" 
-                class="img-fluid rounded shadow-sm cursor-pointer"
-                @click="showImageModals(image)"
-                :alt="`Image ${index + 1}`"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-4 d-flex justify-content-end gap-2">
-          <button class="btn btn-secondary" @click="showDetailModal = false">
-            Fermer
-          </button>
-          <button
-            class="btn btn-warning"
-            @click="previewAnnonce(selectedAnnonce)"
+        <div class="col-12 col-md-6 d-flex justify-content-md-end justify-content-center gap-2">
+          <select 
+            v-model="selectedFilter" 
+            class="form-select" 
+            style="max-width: 200px;"
           >
-            Prévisualiser
-          </button>
-          <button
-            class="btn btn-primary"
-            @click="openEditModal(selectedAnnonce)"
-          >
-            Modifier
-          </button>
+            <option value="">Toutes les annonces</option>
+            <option value="recent">Récentes (7 jours)</option>
+            <option value="thisMonth">Ce mois</option>
+            <option value="important">Importantes</option>
+          </select>
         </div>
       </div>
-    </b-modal>
 
-    <!-- Modal de prévisualisation -->
-    <b-modal
-      v-model="showPreviewModal"
-      title="Prévisualisation de l'Annonce"
-      size="lg"
-      :hide-footer="true"
-    >
-      <div v-if="previewAnnonce" class="preview-container">
-        <div class="card border-0">
-          <div 
-            v-if="previewData.images_annonce && previewData.images_annonce.length > 0"
-            class="mb-3"
-          >
-            <img 
-              :src="previewData.images_annonce[0]" 
-              class="img-fluid rounded"
-              :alt="previewData.titre_annonce"
-            />
+      <!-- Compteur d'annonces -->
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="alert alert-info d-flex align-items-center">
+            <i class="bx bx-info-circle me-2"></i>
+            <span>{{ filteredAnnonces.length }} annonce(s) disponible(s)</span>
           </div>
-          <div class="card-body p-0">
-            <h3 class="card-title">{{ previewData.titre_annonce }}</h3>
-            <p class="text-muted mb-3">
-              <i class="bx bx-calendar me-1"></i>
-              {{ formatDate(previewData.date_annonce) }}
-            </p>
-            <div class="card-text" v-html="previewData.contenu_annonce"></div>
+        </div>
+      </div>
+
+      <!-- Liste des annonces en cartes -->
+      <div class="row">
+        <div 
+          v-for="annonce in paginatedAnnonces" 
+          :key="annonce.id"
+          class="col-12 col-lg-6 col-xl-4 mb-4"
+        >
+          <div class="card h-100 shadow-sm annonce-card border-0">
+            <!-- Badge de priorité -->
+            <div class="position-absolute top-0 end-0 m-2" v-if="annonce.priorite === 'haute'">
+              <span class="badge bg-danger">
+                <i class="bx bx-star me-1"></i>Important
+              </span>
+            </div>
+
+            <!-- Image de l'annonce -->
+            <div 
+              v-if="annonce.images_annonce && annonce.images_annonce.length > 0"
+              class="card-img-top-container position-relative"
+            >
+              <img 
+                :src="annonce.images_annonce[0]" 
+                class="card-img-top"
+                :alt="annonce.titre_annonce"
+                style="height: 200px; object-fit: cover;"
+              />
+              <div class="position-absolute bottom-0 end-0 m-2" v-if="annonce.images_annonce.length > 1">
+                <span class="badge bg-dark bg-opacity-75">
+                  <i class="bx bx-images me-1"></i>{{ annonce.images_annonce.length }}
+                </span>
+              </div>
+            </div>
+
+            <div class="card-body d-flex flex-column">
+              <!-- Titre et date -->
+              <div class="mb-2">
+                <h5 class="card-title mb-1">{{ annonce.titre_annonce }}</h5>
+                <small class="text-muted">
+                  <i class="bx bx-calendar me-1"></i>
+                  {{ formatDate(annonce.date_annonce) }}
+                </small>
+              </div>
+
+              <!-- Aperçu du contenu -->
+              <div class="card-text flex-grow-1 mb-3">
+                <div v-html="truncateText(annonce.contenu_annonce, 120)"></div>
+              </div>
+
+              <!-- Documents attachés -->
+              <div class="mb-3" v-if="annonce.documents && annonce.documents.length > 0">
+                <small class="text-muted d-block mb-2">
+                  <i class="bx bx-paperclip me-1"></i>
+                  {{ annonce.documents.length }} document(s) attaché(s)
+                </small>
+                <div class="d-flex flex-wrap gap-1">
+                  <button
+                    v-for="(doc, index) in annonce.documents"
+                    :key="index"
+                    class="btn btn-sm btn-outline-primary"
+                    @click="downloadDocument(doc)"
+                    :disabled="downloadingDocs[doc.id]"
+                  >
+                    <span v-if="downloadingDocs[doc.id]" class="spinner-border spinner-border-sm me-1"></span>
+                    <i v-else class="bx bx-download me-1"></i>
+                    {{ doc.nom }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="mt-auto d-flex justify-content-between align-items-center">
+                <div class="d-flex gap-2">
+                  <button 
+                    class="btn btn-primary btn-sm"
+                    @click="viewFullAnnonce(annonce)"
+                  >
+                    <i class="bx bx-show me-1"></i>
+                    Lire
+                  </button>
+                  <button 
+                    class="btn btn-outline-secondary btn-sm"
+                    @click="shareAnnonce(annonce)"
+                  >
+                    <i class="bx bx-share me-1"></i>
+                    Partager
+                  </button>
+                </div>
+                
+                <!-- Indicateur de nouveau -->
+                <span v-if="isNew(annonce)" class="badge bg-success">
+                  <i class="bx bx-star me-1"></i>Nouveau
+                </span>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div class="mt-4 d-flex justify-content-end gap-2">
-          <button class="btn btn-secondary" @click="showPreviewModal = false">
-            Fermer
-          </button>
-          <button 
-            v-if="!previewData.isPublished"
-            class="btn btn-success"
-            @click="confirmPublish"
-          >
-            <i class="bx bx-check-circle me-1"></i>
-            Publier cette annonce
-          </button>
+        <!-- Message si aucune annonce -->
+        <div v-if="filteredAnnonces.length === 0" class="col-12">
+          <div class="text-center py-5">
+            <i class="bx bx-info-circle display-4 text-muted"></i>
+            <h5 class="text-muted mt-3">Aucune annonce trouvée</h5>
+            <p class="text-muted">Aucune annonce ne correspond à vos critères de recherche.</p>
+          </div>
         </div>
       </div>
-    </b-modal>
+
+      <!-- Pagination -->
+      <div class="row mt-4" v-if="totalPages > 1">
+        <div class="col-12">
+          <nav aria-label="Navigation des annonces">
+            <ul class="pagination justify-content-center">
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                <button class="page-link" @click="currentPage = Math.max(1, currentPage - 1)">
+                  <i class="bx bx-chevron-left"></i>
+                </button>
+              </li>
+              
+              <li 
+                v-for="page in visiblePages" 
+                :key="page"
+                class="page-item" 
+                :class="{ active: page === currentPage }"
+              >
+                <button class="page-link" @click="currentPage = page">
+                  {{ page }}
+                </button>
+              </li>
+              
+              <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                <button class="page-link" @click="currentPage = Math.min(totalPages, currentPage + 1)">
+                  <i class="bx bx-chevron-right"></i>
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de détail de l'annonce -->
+    <div class="modal fade" id="annonceDetailModal" tabindex="-1" ref="detailModal">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ selectedAnnonce?.titre_annonce }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          
+          <div class="modal-body" v-if="selectedAnnonce">
+            <!-- Informations de l'annonce -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <small class="text-muted">Date de publication</small>
+                <p class="mb-0">{{ formatDate(selectedAnnonce.date_annonce) }}</p>
+              </div>
+              <div class="col-md-6" v-if="selectedAnnonce.created_by">
+                <small class="text-muted">Publié par</small>
+                <p class="mb-0">{{ `${selectedAnnonce.created_by.prenom} ${selectedAnnonce.created_by.nom}` }}</p>
+              </div>
+            </div>
+
+            <!-- Badge de priorité -->
+            <div class="mb-3" v-if="selectedAnnonce.priorite === 'haute'">
+              <span class="badge bg-danger">
+                <i class="bx bx-star me-1"></i>Annonce importante
+              </span>
+            </div>
+
+            <!-- Contenu de l'annonce -->
+            <div class="mb-4">
+              <div v-html="selectedAnnonce.contenu_annonce" class="content-display"></div>
+            </div>
+
+            <!-- Images -->
+            <div class="mb-4" v-if="selectedAnnonce.images_annonce && selectedAnnonce.images_annonce.length > 0">
+              <h6>Images</h6>
+              <div class="row">
+                <div 
+                  v-for="(image, index) in selectedAnnonce.images_annonce" 
+                  :key="index"
+                  class="col-md-6 col-lg-4 mb-3"
+                >
+                  <img 
+                    :src="image" 
+                    class="img-fluid rounded shadow-sm cursor-pointer"
+                    @click="showImageModal(image)"
+                    :alt="`Image ${index + 1}`"
+                    style="height: 150px; width: 100%; object-fit: cover;"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Documents à télécharger -->
+            <div class="mb-4" v-if="selectedAnnonce.documents && selectedAnnonce.documents.length > 0">
+              <h6>Documents joints</h6>
+              <div class="list-group">
+                <div 
+                  v-for="doc in selectedAnnonce.documents" 
+                  :key="doc.id"
+                  class="list-group-item d-flex justify-content-between align-items-center"
+                >
+                  <div class="d-flex align-items-center">
+                    <i class="bx bx-file me-2 text-primary"></i>
+                    <div>
+                      <strong>{{ doc.nom }}</strong>
+                      <br>
+                      <small class="text-muted">{{ doc.type }} - {{ formatFileSize(doc.taille) }}</small>
+                    </div>
+                  </div>
+                  <button 
+                    class="btn btn-outline-primary btn-sm"
+                    @click="downloadDocument(doc)"
+                    :disabled="downloadingDocs[doc.id]"
+                  >
+                    <span v-if="downloadingDocs[doc.id]" class="spinner-border spinner-border-sm me-1"></span>
+                    <i v-else class="bx bx-download me-1"></i>
+                    Télécharger
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              Fermer
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-outline-primary"
+              @click="shareAnnonce(selectedAnnonce)"
+            >
+              <i class="bx bx-share me-1"></i>
+              Partager
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal d'image -->
-    <b-modal
-      v-model="showImageModal"
-      title="Image"
-      size="lg"
-      :hide-footer="true"
-    >
-      <div class="text-center">
-        <img :src="selectedImage" class="img-fluid" alt="Image agrandie" />
-      </div>
-    </b-modal>
-
-    <!-- Modal d'ajout/modification -->
-    <b-modal
-      v-model="showModal"
-      :title="isEditing ? 'Modifier l\'annonce' : 'Ajouter une annonce'"
-      @hidden="resetForm"
-      @cancel="handleCancel"
-      :hide-footer="true"
-      size="lg"
-    >
-      <form ref="modalForm" @submit.prevent="handleSubmit" novalidate>
-        <div class="row">
-          <div class="col-12 col-md-6 mb-3">
-            <FormField
-              v-model="form.titre_annonce"
-              label="Titre de l'annonce"
-              type="text"
-              required
-              id="titre_annonce"
-            />
+    <div class="modal fade" id="imageModal" tabindex="-1" ref="imageModal">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Image</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
-          <div class="col-12 col-md-6 mb-3">
-            <FormField
-              v-model="form.visibilite"
-              label="Visibilité"
-              type="select"
-              :options="visibiliteOptions"
-              required
-              id="visibilite"
-            />
+          <div class="modal-body text-center">
+            <img :src="selectedImage" class="img-fluid" alt="Image agrandie" />
           </div>
         </div>
-
-        <div class="row">
-          <div class="col-12 col-md-6 mb-3">
-            <FormField
-              v-model="form.date_annonce"
-              label="Date de publication"
-              type="date"
-              required
-              id="date_annonce"
-            />
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Contenu de l'annonce</label>
-          <QuillEditor
-            ref="modalFormQuillEditor"
-            theme="snow"
-            :toolbar="toolbar1"
-            style="height: 300px"
-            v-model:content="form.contenu_annonce"
-            content-type="html"
-          />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Images (optionnel)</label>
-          <FileUpload
-            v-model="form.images"
-            :reset-trigger="modalFormResetTrigger"
-            :multiple="true"
-            :max-size="5"
-            accept=".jpg,.jpeg,.png,.gif,.webp"
-            @files-changed="onModalFormFilesChanged"
-          />
-        </div>
-
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            @click="handleCancel"
-            :disabled="loading"
-          >
-            Annuler
-          </button>
-
-          <button
-            type="submit"
-            class="btn btn-primary"
-            :disabled="loading || isUploading"
-          >
-            <span
-              v-if="loading || isUploading"
-              class="spinner-border spinner-border-sm me-1"
-              role="status"
-              aria-hidden="true"
-            ></span>
-            <span v-if="isUploading">Upload en cours...</span>
-            <span v-else-if="loading">{{
-              isEditing ? "Modification..." : "Création..."
-            }}</span>
-            <span v-else>{{
-              isEditing ? "Modifier" : "Créer l'Annonce"
-            }}</span>
-          </button>
-        </div>
-      </form>
-    </b-modal>
-
-    <!-- Modal de confirmation de suppression -->
-    <b-modal
-      v-model="showDeleteModal"
-      title="Confirmer la suppression"
-      @hidden="selectedAnnonce = null"
-      @cancel="handleCancel"
-      :hide-footer="true"
-    >
-      <p>Êtes-vous sûr de vouloir supprimer cette annonce ?</p>
-      <div v-if="selectedAnnonce">
-        <strong>{{ selectedAnnonce.titre_annonce }}</strong>
       </div>
-
-      <div class="modal-footer">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          @click="handleCancel"
-          :disabled="loading"
-        >
-          Annuler
-        </button>
-        <button
-          type="button"
-          class="btn btn-danger"
-          @click="handleDelete"
-          :disabled="loading"
-        >
-          <span
-            v-if="loading"
-            class="spinner-border spinner-border-sm me-1"
-            role="status"
-            aria-hidden="true"
-          ></span>
-          <span>{{ loading ? "En cours..." : "Supprimer" }}</span>
-        </button>
-      </div>
-    </b-modal>
+    </div>
   </VerticalLayout>
 </template>
 
 <script setup lang="ts">
-import { QuillEditor } from "@vueup/vue-quill";
-import { ref, computed, onMounted, nextTick } from "vue";
-import LoadingButton from "@/components/LoadingButton.vue";
-import ExportButton from "@/components/ExportButton.vue";
+import { ref, computed, onMounted } from "vue";
 import VerticalLayout from "@/layouts/VerticalLayout.vue";
 import PageTitle from "@/components/PageTitle.vue";
-import FormField from "@/components/FormField.vue";
-import TablePagination from "@/components/TablePagination.vue";
 import SearchBox from "@/components/SearchBox.vue";
-import FileUpload from "@/components/FileUpload.vue";
-
 import { showSuccessMessage, showErrorMessage } from "@/helpers/notification";
-import { usePermissionStore } from "@/stores/permissionStore";
 
 // Types
+interface Document {
+  id: number;
+  nom: string;
+  type: string;
+  taille: number;
+  url: string;
+}
+
 interface Annonce {
   id: number;
   id_annonce: number;
   titre_annonce: string;
   contenu_annonce: string;
   date_annonce: string;
-  visibilite: 'brouillon' | 'publiee' | 'archivee';
+  visibilite: 'publiee';
+  priorite?: 'normale' | 'haute';
   images_annonce?: string[];
+  documents?: Document[];
   created_by?: {
     nom: string;
     prenom: string;
@@ -634,118 +328,77 @@ interface Annonce {
   created_at?: string;
 }
 
-interface CreateAnnonceRequest {
-  titre_annonce: string;
-  contenu_annonce: string;
-  date_annonce: string;
-  visibilite: string;
-  images?: File[];
-}
-
-// Configuration de l'éditeur Quill
-const toolbar1 = [
-  [{ font: [] }, { size: [] }],
-  ["bold", "italic", "underline", "strike"],
-  [{ color: [] }, { background: [] }],
-  [{ script: "super" }, { script: "sub" }],
-  [{ header: [false, 1, 2, 3, 4, 5, 6] }, "blockquote", "code-block"],
-  [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
-  ["direction", { align: [] }],
-  ["link", "image", "video"],
-  ["clean"],
-];
-
-// Options de visibilité
-const visibiliteOptions = [
-  { value: 'brouillon', label: 'Brouillon' },
-  { value: 'publiee', label: 'Publiée' },
-  { value: 'archivee', label: 'Archivée' }
-];
-
-// Permissions
-const permissions = {
-  create: ["annonce:create"],
-  update: ["annonce:update"],
-  delete: ["annonce:delete"],
-  export: ["annonce:export"],
-};
-
-const permissionStore = usePermissionStore();
-
-const canCreate = computed(() =>
-  permissionStore.checkPermissions(permissions.create)
-);
-const canUpdate = computed(() =>
-  permissionStore.checkPermissions(permissions.update)
-);
-const canDelete = computed(() =>
-  permissionStore.checkPermissions(permissions.delete)
-);
-const canExport = computed(() =>
-  permissionStore.checkPermissions(permissions.export)
-);
-
 // État principal
 const annonces = ref<Annonce[]>([]);
 const searchQuery = ref("");
+const selectedFilter = ref("");
 const currentPage = ref(1);
-const itemsPerPage = ref(10);
-const showModal = ref(false);
-const showDeleteModal = ref(false);
-const showDetailModal = ref(false);
-const showPreviewModal = ref(false);
- const showImageModal = ref(false);
-const loading = ref(false);
-const quickLoading = ref(false);
-const isEditing = ref(false);
+const itemsPerPage = ref(9);
 const selectedAnnonce = ref<Annonce | null>(null);
 const selectedImage = ref("");
-const isUploading = ref(false);
-const uploadProgress = ref<Record<string, number>>({});
-const previewData = ref<any>({});
-
-const quickFormResetTrigger = ref(false);
-const modalFormResetTrigger = ref(false);
-const quickFormQuillEditor = ref();
-const modalFormQuillEditor = ref();
-
-// Formulaires
-const form = ref<CreateAnnonceRequest & { id?: number; images?: File[] }>({
-  titre_annonce: "",
-  contenu_annonce: "",
-  date_annonce: "",
-  visibilite: "brouillon",
-  images: [],
-});
-
-const quickForm = ref<CreateAnnonceRequest & { images?: File[] }>({
-  titre_annonce: "",
-  contenu_annonce: "",
-  date_annonce: "",
-  visibilite: "brouillon",
-  images: [],
-});
+const downloadingDocs = ref<Record<number, boolean>>({});
 
 // Computed
 const filteredAnnonces = computed(() => {
-  if (!searchQuery.value) return annonces.value;
+  let filtered = annonces.value;
 
-  return annonces.value.filter(
-    (annonce) =>
-      annonce.titre_annonce.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      annonce.contenu_annonce.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (annonce.created_by &&
-        `${annonce.created_by.prenom} ${annonce.created_by.nom}`
-          .toLowerCase()
-          .includes(searchQuery.value.toLowerCase()))
+  // Filtrage par recherche
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(
+      (annonce) =>
+        annonce.titre_annonce.toLowerCase().includes(query) ||
+        annonce.contenu_annonce.toLowerCase().includes(query)
+    );
+  }
+
+  // Filtrage par type
+  if (selectedFilter.value) {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    filtered = filtered.filter((annonce) => {
+      const annonceDate = new Date(annonce.date_annonce);
+      
+      switch (selectedFilter.value) {
+        case 'recent':
+          return annonceDate >= sevenDaysAgo;
+        case 'thisMonth':
+          return annonceDate >= startOfMonth;
+        case 'important':
+          return annonce.priorite === 'haute';
+        default:
+          return true;
+      }
+    });
+  }
+
+  // Tri par date (plus récent d'abord)
+  return filtered.sort((a, b) => 
+    new Date(b.date_annonce).getTime() - new Date(a.date_annonce).getTime()
   );
 });
 
-const publishedAnnonces = computed(() => {
-  return annonces.value.filter(annonce => annonce.visibilite === 'publiee');
+const totalPages = computed(() => Math.ceil(filteredAnnonces.value.length / itemsPerPage.value));
+
+const paginatedAnnonces = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredAnnonces.value.slice(start, end);
 });
 
-const totalItems = computed(() => filteredAnnonces.value.length);
+const visiblePages = computed(() => {
+  const pages = [];
+  const start = Math.max(1, currentPage.value - 2);
+  const end = Math.min(totalPages.value, currentPage.value + 2);
+  
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  
+  return pages;
+});
 
 // Méthodes utilitaires
 const truncateText = (html: string, length: number): string => {
@@ -765,364 +418,82 @@ const stripHtmlTags = (html: string): string => {
 
 const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString("fr-FR");
-};
-
-const getVisibilityBadgeClass = (visibilite: string): string => {
-  switch (visibilite) {
-    case 'publiee': return 'bg-success';
-    case 'brouillon': return 'bg-warning';
-    case 'archivee': return 'bg-secondary';
-    default: return 'bg-secondary';
-  }
-};
-
-const getVisibilityLabel = (visibilite: string): string => {
-  const option = visibiliteOptions.find(opt => opt.value === visibilite);
-  return option ? option.label : visibilite;
-};
-
-// Méthodes de gestion des modals
-const openAddModal = () => {
-  isEditing.value = false;
-  showModal.value = true;
-};
-
-const openEditModal = (annonce: Annonce) => {
-  isEditing.value = true;
-  selectedAnnonce.value = annonce;
-  form.value = {
-    id: annonce.id,
-    titre_annonce: annonce.titre_annonce,
-    contenu_annonce: annonce.contenu_annonce,
-    date_annonce: annonce.date_annonce,
-    visibilite: annonce.visibilite,
-  };
-
-  showModal.value = true;
-  showDetailModal.value = false;
-
-  nextTick(() => {
-    if (modalFormQuillEditor.value) {
-      modalFormQuillEditor.value.setHTML(annonce.contenu_annonce || "");
-    }
+  return new Date(dateString).toLocaleDateString("fr-FR", {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 };
 
-const openDeleteModal = (annonce: Annonce) => {
-  selectedAnnonce.value = annonce;
-  showDeleteModal.value = true;
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-const viewAnnonce = (annonce: Annonce) => {
-  selectedAnnonce.value = annonce;
-  showDetailModal.value = true;
+const isNew = (annonce: Annonce): boolean => {
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  return new Date(annonce.date_annonce) > threeDaysAgo;
 };
 
+// Méthodes d'interaction
 const viewFullAnnonce = (annonce: Annonce) => {
   selectedAnnonce.value = annonce;
-  showDetailModal.value = true;
+  const modal = new (window as any).bootstrap.Modal(document.getElementById('annonceDetailModal'));
+  modal.show();
 };
 
-const previewAnnonce = (annonce: Annonce) => {
-  previewData.value = { ...annonce, isPublished: annonce.visibilite === 'publiee' };
-  showPreviewModal.value = true;
-  showDetailModal.value = false;
-};
-
-const previewQuickForm = () => {
-  previewData.value = {
-    titre_annonce: quickForm.value.titre_annonce,
-    contenu_annonce: quickForm.value.contenu_annonce,
-    date_annonce: quickForm.value.date_annonce,
-    visibilite: quickForm.value.visibilite,
-    images_annonce: quickForm.value.images?.map(file => URL.createObjectURL(file)) || [],
-    isPublished: false
-  };
-  showPreviewModal.value = true;
-};
-
-const showImageModals = (imageUrl: string) => {
+const showImageModal = (imageUrl: string) => {
   selectedImage.value = imageUrl;
-  showImageModal.value = true;
+  const modal = new (window as any).bootstrap.Modal(document.getElementById('imageModal'));
+  modal.show();
 };
 
-const onDetailModalHidden = () => {
-  selectedAnnonce.value = null;
-};
-
-// Méthodes de gestion des fichiers
-const onQuickFormFilesChanged = (files: File[]) => {
-  quickForm.value.images = files;
-};
-
-const onModalFormFilesChanged = (files: File[]) => {
-  form.value.images = files;
-};
-
-// Méthodes de soumission
-const handleQuickSubmit = async () => {
-  if (quickLoading.value || isUploading.value) return;
-
+const downloadDocument = async (document: Document) => {
   try {
-    quickLoading.value = true;
-    isUploading.value = quickForm.value.images && quickForm.value.images.length > 0;
-
-    // Simulation upload des images
-    let imageUrls: string[] = [];
-    if (quickForm.value.images && quickForm.value.images.length > 0) {
-      imageUrls = await simulateImageUpload(quickForm.value.images);
-    }
-
-    // Création de la nouvelle annonce
-    const newAnnonce: Annonce = {
-      id: Date.now(),
-      id_annonce: Date.now(),
-      titre_annonce: quickForm.value.titre_annonce,
-      contenu_annonce: quickForm.value.contenu_annonce,
-      date_annonce: quickForm.value.date_annonce,
-      visibilite: quickForm.value.visibilite as 'brouillon' | 'publiee' | 'archivee',
-      images_annonce: imageUrls,
-      created_by: {
-        nom: "Utilisateur",
-        prenom: "Admin"
-      },
-      created_at: new Date().toISOString()
-    };
-
-    // Ajout à la liste
-    annonces.value.unshift(newAnnonce);
-
-    showSuccessMessage("Annonce créée avec succès");
-    resetQuickForm();
-
+    downloadingDocs.value[document.id] = true;
+    
+    // Simulation du téléchargement
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Création d'un lien de téléchargement
+    const link = document.createElement('a');
+    link.href = document.url;
+    link.download = document.nom;
+    link.click();
+    
+    showSuccessMessage(`Document "${document.nom}" téléchargé avec succès`);
+    
   } catch (error) {
-    console.error("Erreur lors de la création:", error);
-    showErrorMessage("Erreur lors de la création de l'annonce");
+    console.error('Erreur lors du téléchargement:', error);
+    showErrorMessage('Erreur lors du téléchargement du document');
   } finally {
-    quickLoading.value = false;
-    isUploading.value = false;
+    downloadingDocs.value[document.id] = false;
   }
 };
 
-const handleSubmit = async () => {
-  if (loading.value || isUploading.value) return;
-
+const shareAnnonce = async (annonce: Annonce) => {
   try {
-    loading.value = true;
-    isUploading.value = form.value.images && form.value.images.length > 0;
-
-    // Simulation upload des images
-    let imageUrls: string[] = [];
-    if (form.value.images && form.value.images.length > 0) {
-      imageUrls = await simulateImageUpload(form.value.images);
-    }
-
-    if (isEditing.value && form.value.id) {
-      // Modification
-      const index = annonces.value.findIndex(a => a.id === form.value.id);
-      if (index !== -1) {
-        annonces.value[index] = {
-          ...annonces.value[index],
-          titre_annonce: form.value.titre_annonce,
-          contenu_annonce: form.value.contenu_annonce,
-          date_annonce: form.value.date_annonce,
-          visibilite: form.value.visibilite as 'brouillon' | 'publiee' | 'archivee',
-          images_annonce: imageUrls.length > 0 ? imageUrls : annonces.value[index].images_annonce
-        };
-      }
-      showSuccessMessage("Annonce modifiée avec succès");
+    if (navigator.share) {
+      await navigator.share({
+        title: annonce.titre_annonce,
+        text: stripHtmlTags(annonce.contenu_annonce).substring(0, 100) + '...',
+        url: window.location.href + '#annonce-' + annonce.id
+      });
     } else {
-      // Création
-      const newAnnonce: Annonce = {
-        id: Date.now(),
-        id_annonce: Date.now(),
-        titre_annonce: form.value.titre_annonce,
-        contenu_annonce: form.value.contenu_annonce,
-        date_annonce: form.value.date_annonce,
-        visibilite: form.value.visibilite as 'brouillon' | 'publiee' | 'archivee',
-        images_annonce: imageUrls,
-        created_by: {
-          nom: "Utilisateur",
-          prenom: "Admin"
-        },
-        created_at: new Date().toISOString()
-      };
-      annonces.value.unshift(newAnnonce);
-      showSuccessMessage("Annonce créée avec succès");
+      // Fallback pour les navigateurs qui ne supportent pas l'API Web Share
+      await navigator.clipboard.writeText(
+        `${annonce.titre_annonce}\n${window.location.href}#annonce-${annonce.id}`
+      );
+      showSuccessMessage('Lien copié dans le presse-papiers');
     }
-
-    showModal.value = false;
-    resetForm();
-
   } catch (error) {
-    console.error("Erreur lors de la soumission:", error);
-    showErrorMessage("Erreur lors de l'enregistrement");
-  } finally {
-    loading.value = false;
-    isUploading.value = false;
+    console.error('Erreur lors du partage:', error);
   }
 };
 
-const handleDelete = async () => {
-  if (!selectedAnnonce.value || loading.value) return;
-
-  try {
-    loading.value = true;
-
-    // Simulation de suppression
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const index = annonces.value.findIndex(a => a.id === selectedAnnonce.value!.id);
-    if (index !== -1) {
-      annonces.value.splice(index, 1);
-    }
-
-    showSuccessMessage("Annonce supprimée avec succès");
-    showDeleteModal.value = false;
-    selectedAnnonce.value = null;
-
-  } catch (error) {
-    console.error("Erreur lors de la suppression:", error);
-    showErrorMessage("Erreur lors de la suppression");
-  } finally {
-    loading.value = false;
-  }
-};
-
-const publishAnnonce = async (annonce: Annonce) => {
-  if (annonce.visibilite === 'publiee') return;
-
-  try {
-    loading.value = true;
-    
-    // Simulation de publication
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const index = annonces.value.findIndex(a => a.id === annonce.id);
-    if (index !== -1) {
-      annonces.value[index].visibilite = 'publiee';
-    }
-
-    showSuccessMessage("Annonce publiée avec succès");
-
-  } catch (error) {
-    console.error("Erreur lors de la publication:", error);
-    showErrorMessage("Erreur lors de la publication");
-  } finally {
-    loading.value = false;
-  }
-};
-
-const confirmPublish = async () => {
-  if (!previewData.value) return;
-
-  try {
-    loading.value = true;
-    
-    // Si c'est une prévisualisation du quick form, créer l'annonce
-    if (!previewData.value.id) {
-      const imageUrls = quickForm.value.images ? 
-        await simulateImageUpload(quickForm.value.images) : [];
-      
-      const newAnnonce: Annonce = {
-        id: Date.now(),
-        id_annonce: Date.now(),
-        titre_annonce: quickForm.value.titre_annonce,
-        contenu_annonce: quickForm.value.contenu_annonce,
-        date_annonce: quickForm.value.date_annonce,
-        visibilite: 'publiee',
-        images_annonce: imageUrls,
-        created_by: {
-          nom: "Utilisateur",
-          prenom: "Admin"
-        },
-        created_at: new Date().toISOString()
-      };
-      
-      annonces.value.unshift(newAnnonce);
-      resetQuickForm();
-    } else {
-      // Publier une annonce existante
-      const index = annonces.value.findIndex(a => a.id === previewData.value.id);
-      if (index !== -1) {
-        annonces.value[index].visibilite = 'publiee';
-      }
-    }
-
-    showSuccessMessage("Annonce publiée avec succès");
-    showPreviewModal.value = false;
-
-  } catch (error) {
-    console.error("Erreur lors de la publication:", error);
-    showErrorMessage("Erreur lors de la publication");
-  } finally {
-    loading.value = false;
-  }
-};
-
-// Méthodes de réinitialisation
-const resetForm = () => {
-  form.value = {
-    titre_annonce: "",
-    contenu_annonce: "",
-    date_annonce: "",
-    visibilite: "brouillon",
-    images: [],
-  };
-  
-  modalFormResetTrigger.value = !modalFormResetTrigger.value;
-  
-  if (modalFormQuillEditor.value) {
-    modalFormQuillEditor.value.setHTML("");
-  }
-  
-  isEditing.value = false;
-  selectedAnnonce.value = null;
-};
-
-const resetQuickForm = () => {
-  quickForm.value = {
-    titre_annonce: "",
-    contenu_annonce: "",
-    date_annonce: "",
-    visibilite: "brouillon",
-    images: [],
-  };
-  
-  quickFormResetTrigger.value = !quickFormResetTrigger.value;
-  
-  if (quickFormQuillEditor.value) {
-    quickFormQuillEditor.value.setHTML("");
-  }
-};
-
-const handleCancel = () => {
-  showModal.value = false;
-  showDeleteModal.value = false;
-  resetForm();
-};
-
-// Simulation d'upload d'images
-const simulateImageUpload = async (files: File[]): Promise<string[]> => {
-  const imageUrls: string[] = [];
-  
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    // Simulation du progress
-    for (let progress = 0; progress <= 100; progress += 20) {
-      uploadProgress.value[file.name] = progress;
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    // Créer une URL temporaire pour l'image
-    imageUrls.push(URL.createObjectURL(file));
-  }
-  
-  return imageUrls;
-};
-
-// Données de mock
+// Données de mock pour les parents
 const mockAnnonces: Annonce[] = [
   {
     id: 1,
@@ -1131,9 +502,26 @@ const mockAnnonces: Annonce[] = [
     contenu_annonce: "<p>À partir du deuxième trimestre, les élèves de 4e et 3e auront une heure supplémentaire de mathématiques chaque semaine afin de mieux préparer les examens nationaux.</p><ul><li>Heures ajoutées : mercredi après-midi</li><li>Groupes de niveau mis en place</li><li>Séances d'exercices encadrées</li></ul>",
     date_annonce: "2024-12-15",
     visibilite: "publiee",
+    priorite: "haute",
     images_annonce: [
       "https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "https://images.unsplash.com/photo-1453733190371-0a9bedd82893?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    ],
+    documents: [
+      {
+        id: 1,
+        nom: "Programme_Maths_Renforcees.pdf",
+        type: "PDF",
+        taille: 245760,
+        url: "https://example.com/docs/programme-maths.pdf"
+      },
+      {
+        id: 2,
+        nom: "Planning_Cours_Mercredi.xlsx",
+        type: "Excel",
+        taille: 51200,
+        url: "https://example.com/docs/planning-mercredi.xlsx"
+      }
     ],
     created_by: {
       nom: "ZINSOU",
@@ -1148,8 +536,25 @@ const mockAnnonces: Annonce[] = [
     contenu_annonce: "<p>Des cours de rattrapage seront organisés les samedis pour les classes de Terminale (A, C et D) en vue du Baccalauréat.</p><ul><li>Matières : Maths, Physique, Philo</li><li>Horaire : 08h à 12h</li><li>Présence obligatoire</li></ul>",
     date_annonce: "2024-12-20",
     visibilite: "publiee",
+    priorite: "haute",
     images_annonce: [
       "https://plus.unsplash.com/premium_photo-1713890424186-11d3584a22fc?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    ],
+    documents: [
+      {
+        id: 3,
+        nom: "Calendrier_Rattrapage_Terminales.pdf",
+        type: "PDF",
+        taille: 198435,
+        url: "https://example.com/docs/calendrier-rattrapage.pdf"
+      },
+      {
+        id: 4,
+        nom: "Fiche_Inscription_Rattrapage.docx",
+        type: "Word",
+        taille: 76800,
+        url: "https://example.com/docs/fiche-inscription.docx"
+      }
     ],
     created_by: {
       nom: "AGOSSA",
@@ -1160,79 +565,299 @@ const mockAnnonces: Annonce[] = [
   {
     id: 3,
     id_annonce: 1003,
-    titre_annonce: "Séminaire des élèves délégués",
-    contenu_annonce: "<p>Les délégués de classe de la 6e à la Terminale sont conviés à un séminaire de leadership scolaire.</p><ul><li>Date : samedi 13 janvier 2025</li><li>Lieu : Salle Polyvalente</li><li>Thèmes : responsabilité, communication, entraide</li></ul>",
-    date_annonce: "2025-01-15",
-    visibilite: "brouillon",
-    images_annonce: [
-      "https://images.unsplash.com/flagged/photo-1579133311477-9121405c78dd?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "https://images.unsplash.com/photo-1632215863479-201029d93143?q=80&w=869&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-    ],
-    created_by: {
-      nom: "KIKI",
-      prenom: "Ulrich"
-    },
-    created_at: "2024-12-22T09:15:00Z"
-  },
-  {
-    id: 4,
-    id_annonce: 1004,
-    titre_annonce: "Journée sportive interclasses",
-    contenu_annonce: "<p>La journée sportive annuelle réunira toutes les classes de la 6e à la 1ère pour des compétitions : football, handball, athlétisme, relais, etc.</p><p>Chaque élève devra porter l’uniforme de sport de l’école. Les équipes seront constituées par niveau.</p>",
-    date_annonce: "2025-01-25",
-    visibilite: "brouillon",
-    images_annonce: [],
-    created_by: {
-      nom: "TOGNISSÈ",
-      prenom: "Adjovi"
-    },
-    created_at: "2024-12-23T16:45:00Z"
-  },
-  {
-    id: 5,
-    id_annonce: 1005,
     titre_annonce: "Concours de dictée pour les 6e et 5e",
-    contenu_annonce: "<p>Un concours de dictée est lancé pour les élèves de 6e et 5e. Les meilleurs recevront des récompenses en fin de trimestre.</p><ul><li>Inscription jusqu’au 31 janvier</li><li>Épreuve prévue le 10 février</li><li>Jury composé de professeurs de français</li></ul>",
-    date_annonce: "2025-02-10",
+    contenu_annonce: "<p>Un concours de dictée est lancé pour les élèves de 6e et 5e. Les meilleurs recevront des récompenses en fin de trimestre.</p><ul><li>Inscription jusqu'au 31 janvier</li><li>Épreuve prévue le 10 février</li><li>Jury composé de professeurs de français</li></ul>",
+    date_annonce: "2025-01-10",
     visibilite: "publiee",
+    priorite: "normale",
     images_annonce: [
-      "https://images.unsplash.com/photo-1610500796951-dea9be78d987?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "https://images.unsplash.com/photo-1726831662518-c48d983f9b86?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "https://images.unsplash.com/photo-1583951171188-48057a97073f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y29uY291ciUyMGVjcml0JTIwZWNvbGUlMjBhZnJpcXVlfGVufDB8fDB8fHww"
+      "https://images.unsplash.com/photo-1610500796951-dea9be78d987?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    ],
+    documents: [
+      {
+        id: 5,
+        nom: "Reglement_Concours_Dictee.pdf",
+        type: "PDF",
+        taille: 125440,
+        url: "https://example.com/docs/reglement-concours.pdf"
+      }
     ],
     created_by: {
       nom: "YAROU",
       prenom: "Firmin"
     },
-    created_at: "2024-12-20T11:20:00Z"
+    created_at: "2025-01-08T11:20:00Z"
   },
   {
-    id: 6,
-    id_annonce: 1006,
-    titre_annonce: "Révision des règlements intérieurs",
-    contenu_annonce: "<p>Le règlement intérieur de l’établissement a été mis à jour. Des réunions de sensibilisation par classe auront lieu dès la rentrée de février.</p><ul><li>Tenue vestimentaire</li><li>Utilisation des téléphones</li><li>Respect des horaires</li></ul>",
-    date_annonce: "2025-02-28",
-    visibilite: "archivee",
+    id: 4,
+    id_annonce: 1004,
+    titre_annonce: "Journée sportive interclasses",
+    contenu_annonce: "<p>La journée sportive annuelle réunira toutes les classes de la 6e à la 1ère pour des compétitions : football, handball, athlétisme, relais, etc.</p><p>Chaque élève devra porter l'uniforme de sport de l'école. Les équipes seront constituées par niveau.</p>",
+    date_annonce: "2025-01-25",
+    visibilite: "publiee",
+    priorite: "normale",
     images_annonce: [
-      "https://images.unsplash.com/photo-1551241681-2aae145af5df?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cmVnbGVtZW50JTIwZWNvbGUlMjBhZnJpcXVlfGVufDB8fDB8fHww"
+      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    ],
+    documents: [
+      {
+        id: 6,
+        nom: "Programme_Journee_Sportive.pdf",
+        type: "PDF",
+        taille: 310275,
+        url: "https://example.com/docs/programme-sport.pdf"
+      },
+      {
+        id: 7,
+        nom: "Autorisation_Parentale_Sport.pdf",
+        type: "PDF",
+        taille: 87552,
+        url: "https://example.com/docs/autorisation-sport.pdf"
+      }
     ],
     created_by: {
-      nom: "BIO TCHANE",
-      prenom: "Mariam"
+      nom: "TOGNISSÈ",
+      prenom: "Adjovi"
     },
-    created_at: "2024-12-19T13:10:00Z"
+    created_at: "2025-01-20T16:45:00Z"
+  },
+  {
+    id: 5,
+    id_annonce: 1005,
+    titre_annonce: "Réunion parents-professeurs",
+    contenu_annonce: "<p>Une réunion parents-professeurs est organisée pour faire le point sur le premier trimestre et préparer le second.</p><p>Tous les parents sont invités à participer. Les rendez-vous individuels peuvent être pris auprès du secrétariat.</p>",
+    date_annonce: "2025-02-05",
+    visibilite: "publiee",
+    priorite: "haute",
+    images_annonce: [
+      "https://images.unsplash.com/photo-1551434678-e076c223a692?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    ],
+    documents: [
+      {
+        id: 8,
+        nom: "Invitation_Reunion_Parents.pdf",
+        type: "PDF",
+        taille: 156672,
+        url: "https://example.com/docs/invitation-reunion.pdf"
+      },
+      {
+        id: 9,
+        nom: "Fiche_RDV_Individuel.pdf",
+        type: "PDF",
+        taille: 94208,
+        url: "https://example.com/docs/fiche-rdv.pdf"
+      }
+    ],
+    created_by: {
+      nom: "DIRECTEUR",
+      prenom: "Adjoint"
+    },
+    created_at: "2025-01-28T09:00:00Z"
   }
 ];
 
-
 // Initialisation
 onMounted(() => {
-  // Charger les données de mock
-  annonces.value = [...mockAnnonces];
-  
-  // Définir la date par défaut à aujourd'hui
-  const today = new Date().toISOString().split('T')[0];
-  form.value.date_annonce = today;
-  quickForm.value.date_annonce = today;
+  // Charger les données de mock (uniquement les annonces publiées)
+  annonces.value = mockAnnonces.filter(annonce => annonce.visibilite === 'publiee');
 });
 </script>
+
+<style scoped>
+.annonce-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.annonce-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.content-display {
+  line-height: 1.6;
+}
+
+.content-display p {
+  margin-bottom: 1rem;
+}
+
+.content-display ul {
+  padding-left: 1.5rem;
+}
+
+.content-display li {
+  margin-bottom: 0.5rem;
+}
+
+.card-img-top-container {
+  overflow: hidden;
+}
+
+.card-img-top {
+  transition: transform 0.3s ease;
+}
+
+.card-img-top:hover {
+  transform: scale(1.05);
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+
+.spinner-border-sm {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-width: 0.125rem;
+}
+
+.page-link {
+  border: 1px solid #dee2e6;
+  color: #6c757d;
+}
+
+.page-link:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  color: #495057;
+}
+
+.page-item.active .page-link {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+.page-item.disabled .page-link {
+  color: #6c757d;
+  pointer-events: none;
+  background-color: #fff;
+  border-color: #dee2e6;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+}
+
+.list-group-item {
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  padding: 0.75rem 1rem;
+}
+
+.list-group-item:first-child {
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+}
+
+.list-group-item:last-child {
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+.modal-content {
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  border-top: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.alert {
+  border: none;
+  border-radius: 0.5rem;
+}
+
+.alert-info {
+  background-color: #cff4fc;
+  color: #055160;
+}
+
+.form-select {
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+}
+
+.form-select:focus {
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.text-muted {
+  color: #6c757d !important;
+}
+
+.display-4 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .modal-dialog {
+    margin: 1rem;
+  }
+  
+  .card-img-top {
+    height: 150px !important;
+  }
+  
+  .btn-sm {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .pagination {
+    justify-content: center !important;
+  }
+  
+  .alert {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .btn-group .btn {
+    font-size: 0.75rem;
+  }
+  
+  .display-4 {
+    font-size: 2rem;
+  }
+}
+</style>

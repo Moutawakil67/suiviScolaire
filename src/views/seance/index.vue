@@ -1,9 +1,100 @@
 <template>
   <VerticalLayout>
     <div class="container-fluid">
-      <PageTitle title="Gestion des séances" />
+      <PageTitle title="Séances de mes enfants" />
       
-      <!-- En-tête avec barre de recherche, sélecteur de vue et boutons -->
+      <!-- Statistiques rapides -->
+      <div class="row g-3 mb-4">
+        <div class="col-lg-3 col-md-6">
+          <div class="card bg-primary bg-soft border-0">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="avatar-sm bg-primary rounded me-3">
+                  <i class="bx bx-book text-white fs-18"></i>
+                </div>
+                <div>
+                  <h4 class="mb-0 text-white">{{ totalSeances }}</h4>
+                  <p class="_text-muted mb-0 text-white">Total séances</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="card bg-success bg-soft border-0">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="avatar-sm bg-success rounded me-3">
+                  <i class="bx bx-check-circle text-white fs-18"></i>
+                </div>
+                <div>
+                  <h4 class="mb-0 text-white">{{ seancesPresentes }}</h4>
+                  <p class="_text-muted mb-0 text-white">Présences</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="card bg-warning bg-soft border-0">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="avatar-sm bg-warning rounded me-3">
+                  <i class="bx bx-x-circle text-white fs-18"></i>
+                </div>
+                <div>
+                  <h4 class="mb-0 text-white">{{ seancesAbsentes }}</h4>
+                  <p class="_text-muted mb-0 text-white">Absences</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="card bg-info bg-soft border-0">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="avatar-sm bg-info rounded me-3">
+                  <i class="bx bx-bell text-white fs-18"></i>
+                </div>
+                <div>
+                  <h4 class="mb-0 text-white">{{ notifications }}</h4>
+                  <p class="_text-muted mb-0 text-white">Notifications</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sélecteur d'enfant si plusieurs enfants -->
+      <div v-if="enfants.length > 1" class="row mb-4">
+        <div class="col-12 col-md-6">
+          <div class="card">
+            <div class="card-body py-2">
+              <div class="d-flex align-items-center">
+                <label class="form-label me-3 mb-0">Enfant :</label>
+                <select 
+                  v-model="selectedEnfantId" 
+                  class="form-select"
+                  @change="loadSeancesForSelectedEnfant"
+                >
+                  <option value="">Tous les enfants</option>
+                  <option 
+                    v-for="enfant in enfants" 
+                    :key="enfant.id" 
+                    :value="enfant.id"
+                  >
+                    {{ enfant.prenom }} {{ enfant.nom }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- En-tête avec barre de recherche et sélecteur de vue -->
       <div class="row g-3 mb-4">
         <div class="col-12 col-md-4">
           <SearchBox
@@ -28,20 +119,19 @@
             >
               <i class="bx bx-calendar me-1"></i> Calendrier
             </button>
+            <button
+              class="btn"
+              :class="viewMode === 'stats' ? 'btn-primary' : 'btn-outline-primary'"
+              @click="viewMode = 'stats'"
+            >
+              <i class="bx bx-bar-chart me-1"></i> Statistiques
+            </button>
           </div>
         </div>
         <div class="col-12 col-md-4 d-flex justify-content-md-end justify-content-center gap-2">
-          <LoadingButton
-            v-if="canCreate"
-            variant="primary"
-            @click="openAddModal"
-          >
-            <i class="bx bx-plus me-1"></i> Ajouter
-          </LoadingButton>
           <ExportButton
-            v-if="canExport"
             :data="seances"
-            filename="seances"
+            filename="seances_enfants"
             label="Exporter"
             class="flex-shrink-0"
           />
@@ -74,6 +164,104 @@
         </div>
       </div>
 
+      <!-- Vue Statistiques -->
+      <div v-if="viewMode === 'stats'" class="row">
+        <!-- Statistiques par enfant -->
+        <div class="col-12 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="bx bx-user me-2"></i>Statistiques par enfant
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div v-for="enfant in enfants" :key="enfant.id" class="col-lg-6 mb-3">
+                  <div class="border rounded p-3">
+                    <h6 class="fw-bold mb-3">{{ enfant.prenom }} {{ enfant.nom }}</h6>
+                    <div class="row text-center">
+                      <div class="col-4">
+                        <div class="text-primary fw-bold fs-4">{{ getStatsForEnfant(enfant.id).total }}</div>
+                        <small class="text-muted">Total</small>
+                      </div>
+                      <div class="col-4">
+                        <div class="text-success fw-bold fs-4">{{ getStatsForEnfant(enfant.id).presences }}</div>
+                        <small class="text-muted">Présent</small>
+                      </div>
+                      <div class="col-4">
+                        <div class="text-danger fw-bold fs-4">{{ getStatsForEnfant(enfant.id).absences }}</div>
+                        <small class="text-muted">Absent</small>
+                      </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                      <div 
+                        class="progress-bar bg-success" 
+                        :style="{ width: getPresencePercentage(enfant.id) + '%' }"
+                      ></div>
+                    </div>
+                    <small class="text-muted">{{ getPresencePercentage(enfant.id) }}% de présence</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistiques par matière -->
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="bx bx-book me-2"></i>Statistiques par matière
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Matière</th>
+                      <th>Enfant</th>
+                      <th>Total séances</th>
+                      <th>Présences</th>
+                      <th>Absences</th>
+                      <th>Taux présence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="stat in statsByMatiere" :key="`${stat.matiere}-${stat.enfant_id}`">
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="avatar-sm bg-primary bg-soft rounded me-2 d-flex align-items-center justify-content-center">
+                            <i class="bx bx-book text-primary"></i>
+                          </div>
+                          {{ stat.matiere }}
+                        </div>
+                      </td>
+                      <td>{{ stat.enfant_nom }}</td>
+                      <td><span class="badge bg-primary bg-soft text-primary">{{ stat.total }}</span></td>
+                      <td><span class="badge bg-success bg-soft text-success">{{ stat.presences }}</span></td>
+                      <td><span class="badge bg-danger bg-soft text-danger">{{ stat.absences }}</span></td>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="progress me-2" style="width: 60px; height: 6px;">
+                            <div 
+                              class="progress-bar bg-success" 
+                              :style="{ width: stat.percentage + '%' }"
+                            ></div>
+                          </div>
+                          <span class="text-muted">{{ stat.percentage }}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Vue Tableau -->
       <div v-if="viewMode === 'table'" class="card">
         <div class="card-body">
@@ -81,17 +269,29 @@
             <table class="table table-centered table-hover">
               <thead>
                 <tr>
+                  <th>Enfant</th>
                   <th>Matière</th>
                   <th>Enseignant</th>
                   <th>Classe</th>
                   <th>Date & Heure</th>
-                  <th>Durée</th>
+                  <th>Présence</th>
                   <th>Statut</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="seance in paginatedSeances" :key="seance.id">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-sm bg-info bg-soft rounded me-2 d-flex align-items-center justify-content-center">
+                        <i class="bx bx-user text-info"></i>
+                      </div>
+                      <div>
+                        <h6 class="mb-0">{{ seance.enfant_prenom }} {{ seance.enfant_nom }}</h6>
+                        <small class="text-muted">{{ seance.classe_nom }}</small>
+                      </div>
+                    </div>
+                  </td>
                   <td>
                     <div class="d-flex align-items-center">
                       <div class="avatar-sm bg-primary bg-soft rounded me-2 d-flex align-items-center justify-content-center">
@@ -123,7 +323,12 @@
                     </div>
                   </td>
                   <td>
-                    <span class="badge bg-secondary bg-soft text-secondary">{{ calculateDuration(seance.heure_debut_time, seance.heure_fin_time) }}</span>
+                    <span 
+                      :class="getPresenceBadgeClass(seance.presence_statut)"
+                      class="badge"
+                    >
+                      {{ getPresenceLabel(seance.presence_statut) }}
+                    </span>
                   </td>
                   <td>
                     <span 
@@ -136,33 +341,25 @@
                   <td>
                     <div class="d-flex gap-2">
                       <button
-                        v-if="canUpdate"
-                        class="btn btn-sm btn-soft-primary"
-                        @click="openEditModal(seance)"
-                        title="Modifier"
-                      >
-                        <i class="bx bx-pencil"></i>
-                      </button>
-                      <button
-                        v-if="canDelete"
-                        class="btn btn-sm btn-soft-danger"
-                        @click="openDeleteModal(seance)"
-                        title="Supprimer"
-                      >
-                        <i class="bx bx-trash"></i>
-                      </button>
-                      <button
                         class="btn btn-sm btn-soft-success"
                         @click="viewSeanceDetails(seance)"
                         title="Voir les détails"
                       >
                         <i class="bx bx-show"></i>
                       </button>
+                      <button
+                        v-if="seance.presence_statut === 'absent'"
+                        class="btn btn-sm btn-soft-warning"
+                        @click="openReclamationModal(seance)"
+                        title="Faire une réclamation"
+                      >
+                        <i class="bx bx-message-square-error"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
                 <tr v-if="filteredSeances.length === 0">
-                  <td colspan="7" class="text-center py-4">
+                  <td colspan="8" class="text-center py-4">
                     <div class="text-muted">
                       <i class="bx bx-search-alt-2 fs-4 d-block mb-2"></i>
                       Aucune séance trouvée
@@ -205,13 +402,19 @@
                       v-for="seance in getSeancesForDayAndHour(day.date, hour)"
                       :key="seance.id"
                       class="seance-block mb-1"
-                      :class="getSeanceBlockClass(seance.statut)"
+                      :class="getSeanceBlockClass(seance.statut, seance.presence_statut)"
                       @click="viewSeanceDetails(seance)"
                     >
                       <div class="seance-title">{{ seance.nom_matiere }}</div>
                       <div class="seance-time">{{ seance.heure_debut_time }} - {{ seance.heure_fin_time }}</div>
                       <div class="seance-teacher">{{ seance.nom_enseignant }}</div>
-                      <div class="seance-class">{{ seance.nom_classe }}</div>
+                      <div class="seance-student">{{ seance.enfant_prenom }}</div>
+                      <div class="seance-presence-indicator">
+                        <i 
+                          :class="getPresenceIcon(seance.presence_statut)"
+                          :title="getPresenceLabel(seance.presence_statut)"
+                        ></i>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -222,126 +425,147 @@
       </div>
     </div>
 
-    <!-- Modal d'ajout/modification -->
+    <!-- Modal de détails de séance -->
     <b-modal
-      v-model="showModal"
-      :title="isEditing ? 'Modifier la séance' : 'Ajouter une séance'"
-      @hidden="resetForm"
-      @cancel="handleCancel"
+      v-model="showDetailsModal"
+      title="Détails de la séance"
+      @hidden="selectedSeance = null"
       :hide-footer="true"
       size="lg"
     >
-      <form ref="seanceForm" @submit.prevent="handleSubmit" novalidate>
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <FormField
-              v-model="form.matiere_id"
-              label="Matière"
-              type="select"
-              :options="matiereOptions"
-              required
-              id="matiere_id"
-            />
+      <div v-if="selectedSeance" class="row">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="fw-bold">Enfant :</label>
+            <p>{{ selectedSeance.enfant_prenom }} {{ selectedSeance.enfant_nom }}</p>
           </div>
-          <div class="col-md-6 mb-3">
-            <FormField
-              v-model="form.enseignant_id"
-              label="Enseignant"
-              type="select"
-              :options="enseignantOptions"
-              required
-              id="enseignant_id"
-            />
+          <div class="mb-3">
+            <label class="fw-bold">Matière :</label>
+            <p>{{ selectedSeance.nom_matiere }} ({{ selectedSeance.type_seance }})</p>
+          </div>
+          <div class="mb-3">
+            <label class="fw-bold">Enseignant :</label>
+            <p>{{ selectedSeance.nom_enseignant }} {{ selectedSeance.prenom_enseignant }}</p>
+          </div>
+          <div class="mb-3">
+            <label class="fw-bold">Classe :</label>
+            <p>{{ selectedSeance.nom_classe }} - {{ selectedSeance.niveau_classe }}</p>
           </div>
         </div>
-        
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <FormField
-              v-model="form.classe_id"
-              label="Classe"
-              type="select"
-              :options="classeOptions"
-              required
-              id="classe_id"
-            />
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="fw-bold">Date :</label>
+            <p>{{ formatDate(selectedSeance.jour) }}</p>
           </div>
-          <div class="col-md-6 mb-3">
-            <FormField
-              v-model="form.type_seance"
-              label="Type de séance"
-              type="select"
-              :options="typeSeanceOptions"
-              required
-              id="type_seance"
-            />
+          <div class="mb-3">
+            <label class="fw-bold">Horaire :</label>
+            <p>{{ selectedSeance.heure_debut_time }} - {{ selectedSeance.heure_fin_time }}</p>
+          </div>
+          <div class="mb-3">
+            <label class="fw-bold">Durée :</label>
+            <p>{{ calculateDuration(selectedSeance.heure_debut_time, selectedSeance.heure_fin_time) }}</p>
+          </div>
+          <div class="mb-3">
+            <label class="fw-bold">Présence :</label>
+            <p>
+              <span 
+                :class="getPresenceBadgeClass(selectedSeance.presence_statut)"
+                class="badge"
+              >
+                {{ getPresenceLabel(selectedSeance.presence_statut) }}
+              </span>
+            </p>
+          </div>
+          <div class="mb-3">
+            <label class="fw-bold">Statut :</label>
+            <p>
+              <span 
+                :class="getStatusBadgeClass(selectedSeance.statut)"
+                class="badge"
+              >
+                {{ selectedSeance.statut }}
+              </span>
+            </p>
+          </div>
+          <div v-if="selectedSeance.salle" class="mb-3">
+            <label class="fw-bold">Salle :</label>
+            <p>{{ selectedSeance.salle }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          @click="showDetailsModal = false"
+        >
+          Fermer
+        </button>
+        <button
+          v-if="selectedSeance && selectedSeance.presence_statut === 'absent'"
+          type="button"
+          class="btn btn-warning"
+          @click="openReclamationModal(selectedSeance)"
+        >
+          <i class="bx bx-message-square-error me-1"></i>
+          Faire une réclamation
+        </button>
+      </div>
+    </b-modal>
+
+    <!-- Modal de réclamation -->
+    <b-modal
+      v-model="showReclamationModal"
+      title="Faire une réclamation"
+      @hidden="resetReclamationForm"
+      :hide-footer="true"
+      size="lg"
+    >
+      <form @submit.prevent="submitReclamation" v-if="selectedSeance">
+        <div class="mb-3">
+          <div class="alert alert-info">
+            <i class="bx bx-info-circle me-1"></i>
+            Réclamation pour la séance de <strong>{{ selectedSeance.nom_matiere }}</strong> 
+            du <strong>{{ formatDate(selectedSeance.jour) }}</strong> 
+            de <strong>{{ selectedSeance.heure_debut_time }}</strong> à <strong>{{ selectedSeance.heure_fin_time }}</strong>
+            pour <strong>{{ selectedSeance.enfant_prenom }} {{ selectedSeance.enfant_nom }}</strong>
           </div>
         </div>
 
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <FormField
-              v-model="form.jour"
-              label="Date"
-              type="date"
-              required
-              id="jour"
-            />
-          </div>
-          <div class="col-md-4 mb-3">
-            <FormField
-              v-model="form.heure_debut_time"
-              label="Heure de début"
-              type="time"
-              required
-              id="heure_debut_time"
-            />
-          </div>
-          <div class="col-md-4 mb-3">
-            <FormField
-              v-model="form.heure_fin_time"
-              label="Heure de fin"
-              type="time"
-              required
-              id="heure_fin_time"
-            />
-          </div>
+        <div class="mb-3">
+          <FormField
+            v-model="reclamationForm.sujet"
+            label="Sujet de la réclamation"
+            type="text"
+            required
+            placeholder="Ex: Présence non marquée, erreur d'absence..."
+          />
         </div>
 
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <FormField
-              v-model="form.statut"
-              label="Statut"
-              type="select"
-              :options="statutOptions"
-              required
-              id="statut"
-            />
-          </div>
-          <div class="col-md-6 mb-3">
-            <FormField
-              v-model="form.salle"
-              label="Salle"
-              type="text"
-              id="salle"
-              placeholder="Numéro de salle"
-            />
-          </div>
+        <div class="mb-3">
+          <FormField
+            v-model="reclamationForm.description"
+            label="Description détaillée"
+            type="textarea"
+            required
+            placeholder="Expliquez en détail votre réclamation..."
+            rows="4"
+          />
         </div>
 
         <div class="modal-footer">
           <button
             type="button"
             class="btn btn-secondary"
-            @click="handleCancel"
+            @click="showReclamationModal = false"
             :disabled="loading"
           >
             Annuler
           </button>
           <button
             type="submit"
-            class="btn btn-primary"
+            class="btn btn-warning"
             :disabled="loading"
           >
             <span
@@ -350,104 +574,63 @@
               role="status"
               aria-hidden="true"
             ></span>
-            <span>{{ isEditing ? 'Modifier' : 'Ajouter' }}</span>
+            <span>{{ loading ? 'En cours...' : 'Envoyer la réclamation' }}</span>
           </button>
         </div>
       </form>
     </b-modal>
 
-    <!-- Modal de confirmation de suppression -->
-    <b-modal
-      v-model="showDeleteModal"
-      title="Confirmer la suppression"
-      @hidden="selectedSeance = null"
-      @cancel="handleCancel"
-      :hide-footer="true"
-    >
-      <div class="text-center" v-if="selectedSeance">
-        <div class="mb-3">
-          <i class="bx bx-error-circle text-danger" style="font-size: 48px;"></i>
-        </div>
-        <h5 class="mb-3">Supprimer la séance</h5>
-        <p class="text-muted mb-3">
-          Êtes-vous sûr de vouloir supprimer la séance de 
-          <strong>{{ selectedSeance.nom_matiere }}</strong> 
-          du <strong>{{ formatDate(selectedSeance.jour) }}</strong> 
-          de <strong>{{ selectedSeance.heure_debut_time }}</strong> à <strong>{{ selectedSeance.heure_fin_time }}</strong> ?
-        </p>
-        <div class="alert alert-warning">
-          <i class="bx bx-info-circle me-1"></i>
-          Cette action est irréversible et supprimera définitivement la séance.
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          @click="handleCancel"
-          :disabled="loading"
-        >
-          Annuler
-        </button>
-        <button
-          type="button"
-          class="btn btn-danger"
-          @click="handleDelete"
-          :disabled="loading"
-        >
-          <span
-            v-if="loading"
-            class="spinner-border spinner-border-sm me-1"
-            role="status"
-            aria-hidden="true"
-          ></span>
-          <span>{{ loading ? 'En cours...' : 'Supprimer' }}</span>
-        </button>
-      </div>
-    </b-modal>
-
   </VerticalLayout>
 </template>
-
 <script setup lang="ts">
-import { ref, computed, onMounted , watch } from 'vue';
-import LoadingButton from '@/components/LoadingButton.vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import ExportButton from '@/components/ExportButton.vue';
 import VerticalLayout from '@/layouts/VerticalLayout.vue';
 import PageTitle from '@/components/PageTitle.vue';
 import FormField from '@/components/FormField.vue';
 import TablePagination from '@/components/TablePagination.vue';
 import { showSuccessMessage, showErrorMessage } from '@/helpers/notification';
-import { usePermissionStore } from '@/stores/permissionStore';
 import SearchBox from '@/components/SearchBox.vue';
 
-const seanceForm = ref(null);
-
-// Définition des permissions requises pour chaque action
-const permissions = {
-  create: ['seance:create'],
-  update: ['seance:update'],
-  delete: ['seance:delete'],
-  export: ['seance:export']
-};
-
-// Utilisation du store de permissions
-const permissionStore = usePermissionStore();
-
-// Vérification des permissions
-const canCreate = computed(() => permissionStore.checkPermissions(permissions.create));
-const canUpdate = computed(() => permissionStore.checkPermissions(permissions.update));
-const canDelete = computed(() => permissionStore.checkPermissions(permissions.delete));
-const canExport = computed(() => permissionStore.checkPermissions(permissions.export));
-
-// État
-const viewMode = ref('table'); // 'table' ou 'calendar'
+// État principal
+const viewMode = ref('table'); // 'table', 'calendar' ou 'stats'
 const currentWeekStart = ref(new Date());
-const seances = ref([
-  // Données mockées pour la démonstration
+const searchQuery = ref('');
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
+const loading = ref(false);
+const selectedSeance = ref(null);
+const showDetailsModal = ref(false);
+const showReclamationModal = ref(false);
+const selectedEnfantId = ref('');
+
+// Données mockées des enfants du parent
+const enfants = ref([
   {
     id: 1,
+    prenom: "Emma",
+    nom: "Dubois",
+    classe_id: 1,
+    classe_nom: "6ème A",
+    niveau: "6ème"
+  },
+  {
+    id: 2,
+    prenom: "Lucas",
+    nom: "Dubois", 
+    classe_id: 2,
+    classe_nom: "4ème C",
+    niveau: "4ème"
+  }
+]);
+
+// Données mockées des séances avec informations de présence
+const seances = ref([
+  {
+    id: 1,
+    enfant_id: 1,
+    enfant_prenom: "Emma",
+    enfant_nom: "Dubois",
     matiere_id: 1,
     nom_matiere: "Mathématiques",
     enseignant_id: 1,
@@ -461,11 +644,15 @@ const seances = ref([
     heure_debut_time: "08:00",
     heure_fin_time: "09:00",
     type_seance: "Cours",
-    statut: "Planifiée",
-    salle: "101"
+    statut: "Terminée",
+    salle: "101",
+    presence_statut: "present" // present, absent, retard, justifie
   },
   {
     id: 2,
+    enfant_id: 1,
+    enfant_prenom: "Emma",
+    enfant_nom: "Dubois",
     matiere_id: 2,
     nom_matiere: "Français",
     enseignant_id: 2,
@@ -479,11 +666,15 @@ const seances = ref([
     heure_debut_time: "09:00",
     heure_fin_time: "10:00",
     type_seance: "Cours",
-    statut: "En cours",
-    salle: "102"
+    statut: "Terminée",
+    salle: "102",
+    presence_statut: "absent"
   },
   {
     id: 3,
+    enfant_id: 2,
+    enfant_prenom: "Lucas",
+    enfant_nom: "Dubois",
     matiere_id: 3,
     nom_matiere: "Histoire-Géographie",
     enseignant_id: 3,
@@ -491,24 +682,28 @@ const seances = ref([
     prenom_enseignant: "Sophie",
     niveau_etude_enseignant: "Professeur certifié",
     classe_id: 2,
-    nom_classe: "5ème B",
-    niveau_classe: "5ème",
+    nom_classe: "4ème C",
+    niveau_classe: "4ème",
     jour: "2024-01-15",
     heure_debut_time: "10:15",
     heure_fin_time: "11:15",
     type_seance: "TD",
     statut: "Terminée",
-    salle: "201"
+    salle: "201",
+    presence_statut: "present"
   },
   {
     id: 4,
+    enfant_id: 2,
+    enfant_prenom: "Lucas",
+    enfant_nom: "Dubois",
     matiere_id: 4,
     nom_matiere: "Sciences Physiques",
     enseignant_id: 4,
     nom_enseignant: "Leroy",
     prenom_enseignant: "Thomas",
     niveau_etude_enseignant: "Professeur certifié",
-    classe_id: 3,
+    classe_id: 2,
     nom_classe: "4ème C",
     niveau_classe: "4ème",
     jour: "2024-01-16",
@@ -516,10 +711,14 @@ const seances = ref([
     heure_fin_time: "15:00",
     type_seance: "TP",
     statut: "Planifiée",
-    salle: "Labo 1"
+    salle: "Labo 1",
+    presence_statut: null
   },
   {
     id: 5,
+    enfant_id: 1,
+    enfant_prenom: "Emma",
+    enfant_nom: "Dubois",
     matiere_id: 5,
     nom_matiere: "Anglais",
     enseignant_id: 5,
@@ -534,46 +733,58 @@ const seances = ref([
     heure_fin_time: "16:15",
     type_seance: "Cours",
     statut: "Annulée",
-    salle: "103"
+    salle: "103",
+    presence_statut: null
   },
   {
     id: 6,
+    enfant_id: 1,
+    enfant_prenom: "Emma",
+    enfant_nom: "Dubois",
     matiere_id: 1,
     nom_matiere: "Mathématiques",
     enseignant_id: 1,
     nom_enseignant: "Dubois",
     prenom_enseignant: "Marie",
     niveau_etude_enseignant: "Professeur certifié",
-    classe_id: 2,
-    nom_classe: "5ème B",
-    niveau_classe: "5ème",
+    classe_id: 1,
+    nom_classe: "6ème A",
+    niveau_classe: "6ème",
     jour: "2024-01-17",
     heure_debut_time: "08:00",
     heure_fin_time: "09:00",
     type_seance: "Contrôle",
     statut: "Planifiée",
-    salle: "105"
+    salle: "105",
+    presence_statut: null
   },
   {
     id: 7,
+    enfant_id: 2,
+    enfant_prenom: "Lucas",
+    enfant_nom: "Dubois",
     matiere_id: 6,
     nom_matiere: "EPS",
     enseignant_id: 6,
     nom_enseignant: "Petit",
     prenom_enseignant: "Lucas",
     niveau_etude_enseignant: "Professeur d'EPS",
-    classe_id: 4,
-    nom_classe: "3ème A",
-    niveau_classe: "3ème",
+    classe_id: 2,
+    nom_classe: "4ème C",
+    niveau_classe: "4ème",
     jour: "2024-01-17",
     heure_debut_time: "10:15",
     heure_fin_time: "12:15",
     type_seance: "Pratique",
-    statut: "Planifiée",
-    salle: "Gymnase"
+    statut: "Terminée",
+    salle: "Gymnase",
+    presence_statut: "retard"
   },
   {
     id: 8,
+    enfant_id: 1,
+    enfant_prenom: "Emma",
+    enfant_nom: "Dubois",
     matiere_id: 7,
     nom_matiere: "Arts Plastiques",
     enseignant_id: 7,
@@ -587,126 +798,23 @@ const seances = ref([
     heure_debut_time: "14:00",
     heure_fin_time: "15:00",
     type_seance: "Atelier",
-    statut: "Planifiée",
-    salle: "Atelier Arts"
-  },
-  {
-    id: 9,
-    matiere_id: 2,
-    nom_matiere: "Français",
-    enseignant_id: 2,
-    nom_enseignant: "Martin",
-    prenom_enseignant: "Pierre",
-    niveau_etude_enseignant: "Professeur agrégé",
-    classe_id: 3,
-    nom_classe: "4ème C",
-    niveau_classe: "4ème",
-    jour: "2024-01-18",
-    heure_debut_time: "15:15",
-    heure_fin_time: "16:15",
-    type_seance: "Cours",
-    statut: "Reportée",
-    salle: "106"
-  },
-  {
-    id: 10,
-    matiere_id: 8,
-    nom_matiere: "Technologie",
-    enseignant_id: 8,
-    nom_enseignant: "Garnier",
-    prenom_enseignant: "Hugo",
-    niveau_etude_enseignant: "Professeur certifié",
-    classe_id: 2,
-    nom_classe: "5ème B",
-    niveau_classe: "5ème",
-    jour: "2024-01-19",
-    heure_debut_time: "09:00",
-    heure_fin_time: "10:00",
-    type_seance: "TP",
-    statut: "Planifiée",
-    salle: "Labo Techno"
+    statut: "Terminée",
+    salle: "Atelier Arts",
+    presence_statut: "justifie"
   }
 ]);
 
-const searchQuery = ref('');
-const currentPage = ref(1);
-const itemsPerPage = ref(10);
-const showModal = ref(false);
-const showDeleteModal = ref(false);
-const loading = ref(false);
-const isEditing = ref(false);
-const selectedSeance = ref(null);
-const formErrors = ref({});
+// Formulaire de réclamation
+const reclamationForm = ref({
+  sujet: '',
+  description: ''
+});
 
 // Heures pour la vue calendrier
 const hours = [
   '08:00', '09:00', '10:00', '11:00', '12:00', 
   '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'
 ];
-
-// Options pour les selects
-const matiereOptions = [
-  { value: 1, label: 'Mathématiques' },
-  { value: 2, label: 'Français' },
-  { value: 3, label: 'Histoire-Géographie' },
-  { value: 4, label: 'Sciences Physiques' },
-  { value: 5, label: 'Anglais' },
-  { value: 6, label: 'EPS' },
-  { value: 7, label: 'Arts Plastiques' },
-  { value: 8, label: 'Technologie' }
-];
-
-const enseignantOptions = [
-  { value: 1, label: 'Marie Dubois' },
-  { value: 2, label: 'Pierre Martin' },
-  { value: 3, label: 'Sophie Bernard' },
-  { value: 4, label: 'Thomas Leroy' },
-  { value: 5, label: 'Camille Moreau' },
-  { value: 6, label: 'Lucas Petit' },
-  { value: 7, label: 'Emma Roux' },
-  { value: 8, label: 'Hugo Garnier' }
-];
-
-const classeOptions = [
-  { value: 1, label: '6ème A' },
-  { value: 2, label: '5ème B' },
-  { value: 3, label: '4ème C' },
-  { value: 4, label: '3ème A' },
-  { value: 5, label: 'CM2 A' },
-  { value: 6, label: 'CM1 B' },
-  { value: 7, label: 'CE2 A' },
-  { value: 8, label: '2nde S' }
-];
-
-const typeSeanceOptions = [
-  { value: 'Cours', label: 'Cours' },
-  { value: 'TD', label: 'TD' },
-  { value: 'TP', label: 'TP' },
-  { value: 'Contrôle', label: 'Contrôle' },
-  { value: 'Pratique', label: 'Pratique' },
-  { value: 'Atelier', label: 'Atelier' }
-];
-
-const statutOptions = [
-  { value: 'Planifiée', label: 'Planifiée' },
-  { value: 'En cours', label: 'En cours' },
-  { value: 'Terminée', label: 'Terminée' },
-  { value: 'Annulée', label: 'Annulée' },
-  { value: 'Reportée', label: 'Reportée' }
-];
-
-// Formulaire
-const form = ref({
-  matiere_id: '',
-  enseignant_id: '',
-  classe_id: '',
-  jour: new Date().toISOString().split('T')[0],
-  heure_debut_time: '08:00',
-  heure_fin_time: '09:00',
-  type_seance: 'Cours',
-  statut: 'Planifiée',
-  salle: ''
-});
 
 // Computed properties pour le calendrier
 const currentWeekEnd = computed(() => {
@@ -736,17 +844,31 @@ const weekDays = computed(() => {
   return days;
 });
 
-// Computed properties
+// Computed properties pour les données filtrées
 const filteredSeances = computed(() => {
-  return seances.value.filter(seance =>
-    seance.nom_matiere.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    seance.nom_enseignant.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    seance.prenom_enseignant.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    seance.nom_classe.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    seance.niveau_classe.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    seance.type_seance.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    seance.statut.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  let filtered = seances.value;
+  
+  // Filtrer par enfant sélectionné
+  if (selectedEnfantId.value) {
+    filtered = filtered.filter(seance => seance.enfant_id === selectedEnfantId.value);
+  }
+  
+  // Filtrer par recherche
+  if (searchQuery.value) {
+    filtered = filtered.filter(seance =>
+      seance.nom_matiere.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      seance.nom_enseignant.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      seance.prenom_enseignant.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      seance.nom_classe.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      seance.niveau_classe.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      seance.type_seance.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      seance.statut.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      seance.enfant_prenom.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      seance.enfant_nom.toLowerCase().includes(searchQuery.value.toLowerCase())
+    );
+  }
+  
+  return filtered;
 });
 
 const totalItems = computed(() => filteredSeances.value.length);
@@ -757,13 +879,89 @@ const paginatedSeances = computed(() => {
   return filteredSeances.value.slice(startIndex.value, endIndex.value);
 });
 
+// Computed properties pour les statistiques
+const totalSeances = computed(() => {
+  return selectedEnfantId.value 
+    ? seances.value.filter(s => s.enfant_id === selectedEnfantId.value).length
+    : seances.value.length;
+});
+
+const seancesPresentes = computed(() => {
+  const filtered = selectedEnfantId.value 
+    ? seances.value.filter(s => s.enfant_id === selectedEnfantId.value)
+    : seances.value;
+  return filtered.filter(s => s.presence_statut === 'present').length;
+});
+
+const seancesAbsentes = computed(() => {
+  const filtered = selectedEnfantId.value 
+    ? seances.value.filter(s => s.enfant_id === selectedEnfantId.value)
+    : seances.value;
+  return filtered.filter(s => s.presence_statut === 'absent').length;
+});
+
+const notifications = computed(() => {
+  // Notifications pour absences non justifiées
+  const filtered = selectedEnfantId.value 
+    ? seances.value.filter(s => s.enfant_id === selectedEnfantId.value)
+    : seances.value;
+  return filtered.filter(s => s.presence_statut === 'absent').length;
+});
+
+// Statistiques par enfant
+const getStatsForEnfant = (enfantId) => {
+  const seancesEnfant = seances.value.filter(s => s.enfant_id === enfantId);
+  const total = seancesEnfant.length;
+  const presences = seancesEnfant.filter(s => s.presence_statut === 'present').length;
+  const absences = seancesEnfant.filter(s => s.presence_statut === 'absent').length;
+  
+  return { total, presences, absences };
+};
+
+const getPresencePercentage = (enfantId) => {
+  const stats = getStatsForEnfant(enfantId);
+  if (stats.total === 0) return 0;
+  return Math.round((stats.presences / stats.total) * 100);
+};
+
+// Statistiques par matière
+const statsByMatiere = computed(() => {
+  const stats = [];
+  const matieres = [...new Set(seances.value.map(s => s.nom_matiere))];
+  
+  matieres.forEach(matiere => {
+    enfants.value.forEach(enfant => {
+      const seancesMatiere = seances.value.filter(s => 
+        s.nom_matiere === matiere && s.enfant_id === enfant.id
+      );
+      
+      if (seancesMatiere.length > 0) {
+        const total = seancesMatiere.length;
+        const presences = seancesMatiere.filter(s => s.presence_statut === 'present').length;
+        const absences = seancesMatiere.filter(s => s.presence_statut === 'absent').length;
+        const percentage = total > 0 ? Math.round((presences / total) * 100) : 0;
+        
+        stats.push({
+          matiere,
+          enfant_id: enfant.id,
+          enfant_nom: `${enfant.prenom} ${enfant.nom}`,
+          total,
+          presences,
+          absences,
+          percentage
+        });
+      }
+    });
+  });
+  
+  return stats;
+});
+
 // Méthodes utilitaires
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('fr-FR');
 };
-
-// Suite du script Vue.js pour la gestion des séances
 
 const calculateDuration = (start, end) => {
   const startTime = new Date(`1970-01-01T${start}`);
@@ -792,15 +990,53 @@ const getStatusBadgeClass = (status) => {
   return statusClasses[status] || 'bg-secondary bg-soft text-secondary';
 };
 
-const getSeanceBlockClass = (status) => {
+const getPresenceBadgeClass = (presenceStatus) => {
   const statusClasses = {
-    'Planifiée': 'seance-planned',
-    'En cours': 'seance-ongoing',
-    'Terminée': 'seance-completed',
-    'Annulée': 'seance-cancelled',
-    'Reportée': 'seance-postponed'
+    'present': 'bg-success bg-soft text-success',
+    'absent': 'bg-danger bg-soft text-danger',
+    'retard': 'bg-warning bg-soft text-warning',
+    'justifie': 'bg-info bg-soft text-info'
   };
-  return statusClasses[status] || 'seance-planned';
+  return statusClasses[presenceStatus] || 'bg-secondary bg-soft text-secondary';
+};
+
+const getPresenceLabel = (presenceStatus) => {
+  const labels = {
+    'present': 'Présent',
+    'absent': 'Absent',
+    'retard': 'Retard',
+    'justifie': 'Justifié'
+  };
+  return labels[presenceStatus] || 'Non renseigné';
+};
+
+const getPresenceIcon = (presenceStatus) => {
+  const icons = {
+    'present': 'bx bx-check-circle text-success',
+    'absent': 'bx bx-x-circle text-danger',
+    'retard': 'bx bx-time text-warning',
+    'justifie': 'bx bx-info-circle text-info'
+  };
+  return icons[presenceStatus] || 'bx bx-question-mark text-secondary';
+};
+
+const getSeanceBlockClass = (status, presenceStatus) => {
+  let baseClass = 'seance-block';
+  
+  // Classe basée sur le statut de présence
+  if (presenceStatus === 'present') {
+    baseClass += ' seance-present';
+  } else if (presenceStatus === 'absent') {
+    baseClass += ' seance-absent';
+  } else if (presenceStatus === 'retard') {
+    baseClass += ' seance-retard';
+  } else if (presenceStatus === 'justifie') {
+    baseClass += ' seance-justifie';
+  } else {
+    baseClass += ' seance-planned';
+  }
+  
+  return baseClass;
 };
 
 // Méthodes pour la navigation du calendrier
@@ -838,7 +1074,7 @@ const getDateFromWeek = (year, week) => {
 };
 
 const getSeancesForDayAndHour = (date, hour) => {
-  return seances.value.filter(seance => {
+  return filteredSeances.value.filter(seance => {
     if (seance.jour !== date) return false;
     
     const seanceHour = seance.heure_debut_time.substring(0, 5);
@@ -846,221 +1082,53 @@ const getSeancesForDayAndHour = (date, hour) => {
   });
 };
 
-// Méthodes CRUD
-const openAddModal = () => {
-  isEditing.value = false;
-  selectedSeance.value = null;
-  resetForm();
-  showModal.value = true;
+// Méthodes pour les actions
+const loadSeancesForSelectedEnfant = () => {
+  // Dans un vrai projet, ici on ferait un appel API
+  // Pour la démo, les données sont déjà filtrées dans les computed properties
+  currentPage.value = 1;
 };
 
-const openEditModal = (seance) => {
-  isEditing.value = true;
+const viewSeanceDetails = (seance) => {
   selectedSeance.value = seance;
-  
-  // Remplir le formulaire avec les données de la séance
-  form.value = {
-    matiere_id: seance.matiere_id,
-    enseignant_id: seance.enseignant_id,
-    classe_id: seance.classe_id,
-    jour: seance.jour,
-    heure_debut_time: seance.heure_debut_time,
-    heure_fin_time: seance.heure_fin_time,
-    type_seance: seance.type_seance,
-    statut: seance.statut,
-    salle: seance.salle || ''
-  };
-  
-  showModal.value = true;
+  showDetailsModal.value = true;
 };
 
-const openDeleteModal = (seance) => {
+const openReclamationModal = (seance) => {
   selectedSeance.value = seance;
-  showDeleteModal.value = true;
+  showReclamationModal.value = true;
+  showDetailsModal.value = false;
 };
 
-const resetForm = () => {
-  form.value = {
-    matiere_id: '',
-    enseignant_id: '',
-    classe_id: '',
-    jour: new Date().toISOString().split('T')[0],
-    heure_debut_time: '08:00',
-    heure_fin_time: '09:00',
-    type_seance: 'Cours',
-    statut: 'Planifiée',
-    salle: ''
+const resetReclamationForm = () => {
+  reclamationForm.value = {
+    sujet: '',
+    description: ''
   };
-  formErrors.value = {};
 };
 
-const validateForm = () => {
-  const errors = {};
-  
-  if (!form.value.matiere_id) {
-    errors.matiere_id = 'La matière est requise';
-  }
-  
-  if (!form.value.enseignant_id) {
-    errors.enseignant_id = 'L\'enseignant est requis';
-  }
-  
-  if (!form.value.classe_id) {
-    errors.classe_id = 'La classe est requise';
-  }
-  
-  if (!form.value.jour) {
-    errors.jour = 'La date est requise';
-  }
-  
-  if (!form.value.heure_debut_time) {
-    errors.heure_debut_time = 'L\'heure de début est requise';
-  }
-  
-  if (!form.value.heure_fin_time) {
-    errors.heure_fin_time = 'L\'heure de fin est requise';
-  }
-  
-  // Vérifier que l'heure de fin est après l'heure de début
-  if (form.value.heure_debut_time && form.value.heure_fin_time) {
-    const debut = new Date(`1970-01-01T${form.value.heure_debut_time}`);
-    const fin = new Date(`1970-01-01T${form.value.heure_fin_time}`);
-    
-    if (fin <= debut) {
-      errors.heure_fin_time = 'L\'heure de fin doit être après l\'heure de début';
-    }
-  }
-  
-  if (!form.value.type_seance) {
-    errors.type_seance = 'Le type de séance est requis';
-  }
-  
-  if (!form.value.statut) {
-    errors.statut = 'Le statut est requis';
-  }
-  
-  formErrors.value = errors;
-  return Object.keys(errors).length === 0;
-};
-
-const handleSubmit = async () => {
-  if (!validateForm()) {
+const submitReclamation = async () => {
+  if (!reclamationForm.value.sujet || !reclamationForm.value.description) {
+    showErrorMessage('Veuillez remplir tous les champs');
     return;
   }
   
   loading.value = true;
   
   try {
-    if (isEditing.value) {
-      // Simulation de la mise à jour
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const index = seances.value.findIndex(s => s.id === selectedSeance.value.id);
-      if (index !== -1) {
-        // Récupérer les données liées depuis les options
-        const matiere = matiereOptions.find(m => m.value === form.value.matiere_id);
-        const enseignant = enseignantOptions.find(e => e.value === form.value.enseignant_id);
-        const classe = classeOptions.find(c => c.value === form.value.classe_id);
-        
-        seances.value[index] = {
-          ...selectedSeance.value,
-          ...form.value,
-          nom_matiere: matiere?.label || '',
-          nom_enseignant: enseignant?.label.split(' ')[1] || '',
-          prenom_enseignant: enseignant?.label.split(' ')[0] || '',
-          nom_classe: classe?.label || '',
-          niveau_classe: classe?.label.split(' ')[0] || ''
-        };
-      }
-      
-      showSuccessMessage('Séance modifiée avec succès');
-    } else {
-      // Simulation de l'ajout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Récupérer les données liées depuis les options
-      const matiere = matiereOptions.find(m => m.value === form.value.matiere_id);
-      const enseignant = enseignantOptions.find(e => e.value === form.value.enseignant_id);
-      const classe = classeOptions.find(c => c.value === form.value.classe_id);
-      
-      const newSeance = {
-        id: Date.now(), // ID temporaire
-        ...form.value,
-        nom_matiere: matiere?.label || '',
-        nom_enseignant: enseignant?.label.split(' ')[1] || '',
-        prenom_enseignant: enseignant?.label.split(' ')[0] || '',
-        niveau_etude_enseignant: 'Professeur certifié',
-        nom_classe: classe?.label || '',
-        niveau_classe: classe?.label.split(' ')[0] || ''
-      };
-      
-      seances.value.push(newSeance);
-      showSuccessMessage('Séance ajoutée avec succès');
-    }
+    // Simulation de l'envoi de la réclamation
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    showModal.value = false;
-    resetForm();
+    showSuccessMessage('Réclamation envoyée avec succès');
+    showReclamationModal.value = false;
+    resetReclamationForm();
     
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde:', error);
-    showErrorMessage('Une erreur est survenue lors de la sauvegarde');
+    console.error('Erreur lors de l\'envoi de la réclamation:', error);
+    showErrorMessage('Une erreur est survenue lors de l\'envoi de la réclamation');
   } finally {
     loading.value = false;
   }
-};
-
-const handleDelete = async () => {
-  if (!selectedSeance.value) return;
-  
-  loading.value = true;
-  
-  try {
-    // Simulation de la suppression
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const index = seances.value.findIndex(s => s.id === selectedSeance.value.id);
-    if (index !== -1) {
-      seances.value.splice(index, 1);
-    }
-    
-    showSuccessMessage('Séance supprimée avec succès');
-    showDeleteModal.value = false;
-    selectedSeance.value = null;
-    
-  } catch (error) {
-    console.error('Erreur lors de la suppression:', error);
-    showErrorMessage('Une erreur est survenue lors de la suppression');
-  } finally {
-    loading.value = false;
-  }
-};
-
-const handleCancel = () => {
-  showModal.value = false;
-  showDeleteModal.value = false;
-  selectedSeance.value = null;
-  resetForm();
-};
-
-const viewSeanceDetails = (seance) => {
-  // Ici, vous pourriez ouvrir une modal de détails ou naviguer vers une page de détails
-  console.log('Voir les détails de la séance:', seance);
-  
-  // Exemple d'implémentation avec une alert pour la démonstration
-  const details = `
-Détails de la séance:
-- Matière: ${seance.nom_matiere}
-- Type: ${seance.type_seance}
-- Enseignant: ${seance.prenom_enseignant} ${seance.nom_enseignant}
-- Classe: ${seance.nom_classe}
-- Date: ${formatDate(seance.jour)}
-- Heure: ${seance.heure_debut_time} - ${seance.heure_fin_time}
-- Durée: ${calculateDuration(seance.heure_debut_time, seance.heure_fin_time)}
-- Statut: ${seance.statut}
-- Salle: ${seance.salle || 'Non spécifiée'}
-  `;
-  
-  alert(details.trim());
 };
 
 // Initialisation
@@ -1078,352 +1146,8 @@ onMounted(() => {
 watch(searchQuery, () => {
   currentPage.value = 1;
 });
+
+watch(selectedEnfantId, () => {
+  currentPage.value = 1;
+});
 </script>
-
-/* Styles CSS pour le composant de gestion des séances */
-
-<style scoped>
-.calendar-week-view {
-  min-height: 600px;
-  overflow-x: auto;
-}
-
-.hour-header {
-  height: 60px;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.hour-slot {
-  height: 80px;
-  padding: 8px 4px;
-  border-bottom: 1px solid #f1f3f4;
-  font-size: 0.875rem;
-  color: #6c757d;
-  text-align: center;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.day-header {
-  height: 60px;
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.day-column {
-  position: relative;
-}
-
-.seance-block {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 6px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin: 2px;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.seance-block:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.seance-block.seance-planned {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.seance-block.seance-ongoing {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
-
-.seance-block.seance-completed {
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-  color: #495057;
-}
-
-.seance-block.seance-cancelled {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ffa8a8 100%);
-}
-
-.seance-block.seance-postponed {
-  background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
-}
-
-.seance-title {
-  font-weight: 600;
-  margin-bottom: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.seance-time {
-  font-size: 0.7rem;
-  opacity: 0.9;
-  margin-bottom: 2px;
-}
-
-.seance-teacher {
-  font-size: 0.7rem;
-  opacity: 0.8;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.seance-class {
-  font-size: 0.7rem;
-  opacity: 0.8;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Styles pour les badges de statut */
-.bg-soft {
-  background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
-}
-
-.bg-primary.bg-soft {
-  background-color: rgba(13, 110, 253, 0.1) !important;
-}
-
-.bg-success.bg-soft {
-  background-color: rgba(25, 135, 84, 0.1) !important;
-}
-
-.bg-danger.bg-soft {
-  background-color: rgba(220, 53, 69, 0.1) !important;
-}
-
-.bg-warning.bg-soft {
-  background-color: rgba(255, 193, 7, 0.1) !important;
-}
-
-.bg-info.bg-soft {
-  background-color: rgba(13, 202, 240, 0.1) !important;
-}
-
-.bg-secondary.bg-soft {
-  background-color: rgba(108, 117, 125, 0.1) !important;
-}
-
-/* Styles pour les boutons */
-.btn-soft-primary {
-  color: #0d6efd;
-  background-color: rgba(13, 110, 253, 0.1);
-  border-color: transparent;
-}
-
-.btn-soft-primary:hover {
-  color: #fff;
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.btn-soft-danger {
-  color: #dc3545;
-  background-color: rgba(220, 53, 69, 0.1);
-  border-color: transparent;
-}
-
-.btn-soft-danger:hover {
-  color: #fff;
-  background-color: #dc3545;
-  border-color: #dc3545;
-}
-
-.btn-soft-success {
-  color: #198754;
-  background-color: rgba(25, 135, 84, 0.1);
-  border-color: transparent;
-}
-
-.btn-soft-success:hover {
-  color: #fff;
-  background-color: #198754;
-  border-color: #198754;
-}
-
-/* Avatar styles */
-.avatar-sm {
-  width: 2.5rem;
-  height: 2.5rem;
-}
-
-/* Styles pour les tableaux */
-.table-centered th,
-.table-centered td {
-  vertical-align: middle;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .calendar-week-view {
-    font-size: 0.75rem;
-  }
-  
-  .hour-slot {
-    height: 60px;
-  }
-  
-  .seance-block {
-    padding: 4px 6px;
-    font-size: 0.7rem;
-  }
-  
-  .seance-title {
-    font-size: 0.7rem;
-  }
-  
-  .seance-time,
-  .seance-teacher,
-  .seance-class {
-    font-size: 0.65rem;
-  }
-}
-
-/* Animation pour les modals */
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-/* Styles pour les alertes */
-.alert {
-  border: none;
-  border-radius: 8px;
-}
-
-.alert-warning {
-  background-color: rgba(255, 193, 7, 0.1);
-  color: #664d03;
-  border-left: 4px solid #ffc107;
-}
-
-/* Loading spinner styles */
-.spinner-border-sm {
-  width: 1rem;
-  height: 1rem;
-}
-
-/* Form validation styles */
-.is-invalid {
-  border-color: #dc3545;
-}
-
-.invalid-feedback {
-  display: block;
-  width: 100%;
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  color: #dc3545;
-}
-
-/* Styles pour les éléments interactifs */
-.cursor-pointer {
-  cursor: pointer;
-}
-
-/* Styles pour l'état de chargement */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.loading-spinner {
-  width: 3rem;
-  height: 3rem;
-  border: 0.25rem solid #f3f3f3;
-  border-top: 0.25rem solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Amélioration de l'accessibilité */
-.btn:focus,
-.form-control:focus,
-.form-select:focus {
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-/* Styles pour les tooltips */
-.tooltip {
-  font-size: 0.875rem;
-}
-
-/* Styles pour les états vides */
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #6c757d;
-}
-
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-/* Styles pour les cartes */
-.card {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border: 1px solid rgba(0, 0, 0, 0.125);
-}
-
-.card-body {
-  padding: 1.5rem;
-}
-
-/* Styles pour les boutons d'action */
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
-/* Print styles */
-@media print {
-  .btn,
-  .modal,
-  .no-print {
-    display: none !important;
-  }
-  
-  .table {
-    font-size: 0.875rem;
-  }
-  
-  .card {
-    border: 1px solid #000;
-    box-shadow: none;
-  }
-}
-</style>

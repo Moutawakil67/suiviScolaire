@@ -10,48 +10,14 @@ export const MENU_ITEMS: MenuItemType[] = [
         key: 'dashboard',
         icon: 'solar:home-2-broken',
         label: 'Dashboard',
-        // badge: {
-        //     text: '9+',
-        //     variant: 'success',
-        // },
+        variant: 'success',
         route: { name: 'dashboards.index' },
-    },
-    {
-        key: 'utilisateur',
-        icon: 'solar:users-group-rounded-broken',
-        label: 'Utilisateurs',
-        route: { name: 'utilisateur.index' },
-    },
-    {
-        key: 'classe',
-        icon: 'solar:play-stream-broken',
-        label: 'Classes',
-        route: { name: 'classe.index' },
-    },
-
-    {
-        key: 'inscription',
-        icon: 'solar:bookmark-circle-bold-duotone',
-        label: 'Inscriptions',
-        route: { name: 'inscription.index' },
-    },
-    {
-        key: 'matiere',
-        icon: 'solar:folder-with-files-broken',
-        label: 'Matières',
-        route: { name: 'matiere.index' },
     },
     {
         key: 'seance',
         icon: 'solar:flame-bold-duotone',
         label: 'Séances',
         route: { name: 'seance.index' },
-    },
-    {
-        key: 'evaluation',
-        icon: 'fluent-mdl2:edit-note',
-        label: 'Evaluations',
-        route: { name: 'evaluation.index' },
     },
     {
         key: 'bulletin',
@@ -65,6 +31,39 @@ export const MENU_ITEMS: MenuItemType[] = [
         label: 'Annonces',
         route: { name: 'annonce.index'},
     },
+    {
+        key: 'Profil',
+        icon: 'solar:users-group-rounded-broken',
+        label: 'Utilisateurs',
+        route: { name: 'utilisateur.index' },
+    },
+    // {
+    //     key: 'classe',
+    //     icon: 'solar:play-stream-broken',
+    //     label: 'Classes',
+    //     route: { name: 'classe.index' },
+    // },
+
+    // {
+    //     key: 'inscription',
+    //     icon: 'solar:bookmark-circle-bold-duotone',
+    //     label: 'Inscriptions',
+    //     route: { name: 'inscription.index' },
+    // },
+    // {
+    //     key: 'matiere',
+    //     icon: 'solar:folder-with-files-broken',
+    //     label: 'Matières',
+    //     route: { name: 'matiere.index' },
+    // },
+  
+    // {
+    //     key: 'evaluation',
+    //     icon: 'fluent-mdl2:edit-note',
+    //     label: 'Evaluations',
+    //     route: { name: 'evaluation.index' },
+    // },
+
     // {
     //     key: 'spot',
     //     icon: 'solar:play-circle-broken',
